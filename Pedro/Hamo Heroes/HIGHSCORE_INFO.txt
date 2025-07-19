@@ -1,0 +1,63 @@
+🏆 SISTEMA DE HIGHSCORE - HAMO HEROES 🏆
+
+═══════════════════════════════════════════════════════════════
+
+✅ CARACTERÍSTICAS DO SISTEMA:
+═══════════════════════════════
+• Salva automaticamente sua melhor pontuação
+• Funciona offline - não precisa de internet
+• Armazenado no seu computador (localStorage)
+• Persiste mesmo fechando o navegador
+• Exibição em tempo real durante o jogo
+
+📊 COMO FUNCIONA:
+═════════════════
+1. Jogue normalmente e acumule pontos
+2. Quando fizer Game Over, o jogo verifica se você bateu o recorde
+3. Se sim, salva automaticamente a nova pontuação
+4. Na próxima vez que jogar, seu recorde estará lá!
+
+🎯 ONDE VER O RECORDE:
+═══════════════════════
+• Durante o jogo: "🏆 Recorde: XXX" no topo da tela
+• Na tela de Game Over: "🏆 Melhor Pontuação: XXX"
+• Animação especial quando bater o recorde!
+
+💾 ARMAZENAMENTO:
+═════════════════
+• Local: localStorage do navegador
+• Chave: "hamoHeroes_highScore"
+• Tipo: Número inteiro
+• Backup: Não há backup automático
+
+🔧 SOLUÇÃO DE PROBLEMAS:
+═══════════════════════
+❓ Recorde não aparece?
+   → Verifique se o localStorage está habilitado no navegador
+
+❓ Recorde zerou?
+   → Pode ter limpado o cache do navegador
+   → Ou jogado em modo privado/incógnito
+
+❓ Recorde não salva?
+   → Tente jogar em uma nova aba
+   → Verifique as configurações de privacidade
+
+🎮 DICAS PARA RECORDES ALTOS:
+════════════════════════════
+• Use o super pulo para destruir caçadores (+200 pontos cada)
+• Colete moedas douradas (+100 pontos cada)
+• Sobreviva o máximo de tempo (+1 ponto por frame)
+• Explore o mundo inteiro para encontrar mais power-ups
+• Use o escudo e velocidade estrategicamente
+
+🗂️ DADOS TÉCNICOS:
+══════════════════
+• Função de carregamento: loadHighScore()
+• Função de salvamento: saveHighScore()
+• Função de verificação: checkAndUpdateHighScore()
+• Logs no console do navegador para debug
+
+═══════════════════════════════════════════════════════════════
+🚀 Boa sorte batendo seus próprios recordes em Hamo Heroes! 🐹
+═══════════════════════════════════════════════════════════════

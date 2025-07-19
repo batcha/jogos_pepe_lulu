@@ -1,0 +1,59 @@
+🎵 COMO ADICIONAR SEUS MP3 AO JOGO HAMO HEROES 🎵
+
+═══════════════════════════════════════════════════════════════
+
+📁 PASSO 1: PREPARE SEUS ARQUIVOS
+═════════════════════════════════════
+• Escolha 7-8 arquivos MP3 que você tem
+• Renomeie-os EXATAMENTE com estes nomes:
+
+  jump.mp3          (som de pulo)
+  super-jump.mp3    (som de super pulo/ataque)
+  landing.mp3       (som de pouso)
+  powerup.mp3       (som de power-up)
+  hit.mp3           (som de dano)
+  destroy.mp3       (som de explosão)
+  gameover.mp3      (som de game over)
+  background.mp3    (música de fundo - OPCIONAL)
+
+📂 PASSO 2: COLE NA PASTA CERTA
+════════════════════════════════════
+Copie TODOS os arquivos para:
+c:\Users\batch\OneDrive\Área de Trabalho\Jogos\Pedro\Hamo Heroes\sounds\
+
+🎮 PASSO 3: TESTE NO JOGO
+══════════════════════════
+1. Abra o jogo (index.html)
+2. Clique no botão "🎮 Testar Sons"
+3. Você ouvirá cada som em sequência
+4. Se algum não tocar, verifique o nome do arquivo
+
+✅ VERIFICAÇÃO
+═══════════════
+Após colocar os arquivos, a pasta sounds deve ter:
+• README.md
+• jump.mp3 (SEU ARQUIVO)
+• super-jump.mp3 (SEU ARQUIVO)
+• landing.mp3 (SEU ARQUIVO)
+• powerup.mp3 (SEU ARQUIVO)
+• hit.mp3 (SEU ARQUIVO)
+• destroy.mp3 (SEU ARQUIVO)
+• gameover.mp3 (SEU ARQUIVO)
+• background.mp3 (SEU ARQUIVO - opcional)
+
+🔧 PROBLEMAS COMUNS:
+════════════════════
+❌ Som não toca? → Verifique se o nome está EXATAMENTE igual
+❌ Alguns sons não funcionam? → Verifique se são arquivos .mp3 válidos
+❌ Música de fundo não toca? → Clique uma vez no jogo primeiro (regra do navegador)
+
+🎯 DICAS:
+═════════
+• Sons curtos (0.5-2 segundos) funcionam melhor para efeitos
+• Música de fundo pode ser mais longa (1-3 minutos)
+• O jogo funciona mesmo se alguns sons estiverem faltando
+• Use o botão "🎮 Testar Sons" sempre que adicionar novos arquivos
+
+═══════════════════════════════════════════════════════════════
+💡 LEMBRE-SE: Os nomes dos arquivos devem ser EXATAMENTE iguais!
+═══════════════════════════════════════════════════════════════

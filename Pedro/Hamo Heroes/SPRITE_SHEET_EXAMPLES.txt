@@ -1,0 +1,114 @@
+🎬 EXEMPLOS VISUAIS - SPRITE SHEETS HAMO HEROES
+
+📐 EXEMPLOS DE LAYOUT:
+
+=== SPRITE SIMPLES (1 FRAME) ===
+hamo_jumping.png (60x80px):
++--------+
+|   ⬆️   |
+| Salto  |
+|   🐹   |
++--------+
+  60px
+
+=== SPRITE ANIMADA (4 FRAMES) ===
+hamo_running.png (240x80px):
++--------+--------+--------+--------+
+|   🏃   |   🏃   |   🏃   |   🏃   |
+|Frame 1 |Frame 2 |Frame 3 |Frame 4 |
+| Perna  | Inter- | Perna  | Inter- |
+|Direita | médio  |Esquerda| médio  |
++--------+--------+--------+--------+
+  60px     60px     60px     60px
+            240px total
+
+=== SPRITE COMPLEXA (6 FRAMES) ===
+hamo_attacking.png (360x80px):
++------+------+------+------+------+------+
+|  ⚔️  |  ⚔️  |  ⚔️  |  ⚔️  |  ⚔️  |  ⚔️  |
+|Prep. |Impulso|Ataque|Impact|Recuo |Final |
+| 🐹   | 🐹⬆️ | 🐹⚡ | 🐹💥 | 🐹⬇️ | 🐹   |
++------+------+------+------+------+------+
+ 60px   60px   60px   60px   60px   60px
+                360px total
+
+🎨 PROCESSO DE CRIAÇÃO:
+
+1️⃣ PLANEJAMENTO:
+- Decida quantos frames precisa
+- Esboce a sequência de movimento
+- Calcule a largura total (frames × 60px)
+
+2️⃣ CRIAÇÃO:
+- Crie canvas com largura total × 80px altura
+- Desenhe cada frame lado a lado
+- Mantenha consistência entre frames
+
+3️⃣ EXPORTAÇÃO:
+- Salve como PNG transparente
+- Largura = múltiplo de 60px
+- Altura = exatamente 80px
+
+📊 RECOMENDAÇÕES POR ESTADO:
+
+🧍 IDLE (Respiração):
+- 2 frames: Normal → Peito Inflado → Loop
+- 3 frames: Normal → Meio → Inflado → Loop
+
+🏃 RUNNING (Corrida):
+- 4 frames: Clássico (perna D, meio, perna E, meio)
+- 6 frames: Suave (mais posições intermediárias)
+
+⚔️ ATTACKING (Ataque):
+- 3 frames: Preparar → Atacar → Finalizar
+- 6 frames: Prep → Impulso → Ataque → Impacto → Recuo → Final
+
+💀 DYING (Morte):
+- 4 frames: Normal → Cambaleando → Caindo → No Chão
+- 6 frames: Mais dramático com efeitos
+
+⚡ VELOCIDADES SUGERIDAS:
+
+Mais frames = animação mais lenta (precisa ajustar velocidade):
+- 1-2 frames: Velocidade padrão
+- 3-4 frames: Acelerar um pouco 
+- 5-6 frames: Acelerar mais
+- 7+ frames: Muito rápido
+
+🔧 TESTE E AJUSTE:
+
+1. Comece com 1 frame por estado
+2. Adicione gradualmente mais frames
+3. Teste no jogo para ver fluidez
+4. Ajuste velocidades se necessário
+
+💡 DICAS PROFISSIONAIS:
+
+✅ DO:
+- Use referências de movimento real
+- Teste animação antes de finalizar  
+- Mantenha proporções consistentes
+- Use cores vibrantes e contrastantes
+
+❌ DON'T:
+- Não misture estilos entre frames
+- Não faça frames muito diferentes
+- Não esqueça da transparência
+- Não use tamanhos incorretos
+
+🎮 EXEMPLOS REAIS:
+
+IDLE simples (60x80px):
+- 1 frame estático
+
+RUNNING básico (240x80px):  
+- 4 frames de corrida
+
+ATTACKING épico (360x80px):
+- 6 frames de sequência de ataque
+
+DYING dramático (480x80px):
+- 8 frames de morte cinematográfica
+
+🚀 RESULTADO:
+Animações fluidas que dão vida ao seu personagem!

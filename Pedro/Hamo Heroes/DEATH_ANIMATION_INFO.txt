@@ -1,0 +1,109 @@
+# 💀 Animação de Morte - Hamo Heroes
+
+## 🎬 Efeito de Rotação + Queda na Morte
+
+Quando o Hamo perde todas as vidas e morre, agora há uma animação dramática de rotação de 90 graus **COMBINADA** com queda realística até o chão!
+
+### ⚙️ **Configurações da Animação:**
+
+- **🔄 Rotação**: 90 graus (π/2 radianos)
+- **⚡ Velocidade**: 10 graus por frame (ajustável)
+- **⏱️ Duração**: ~9 frames (0.15 segundos a 60fps)
+- **🎭 Direção**: Rotação no sentido horário
+- **🎯 Centro**: Gira em torno do centro do personagem
+- **⬇️ Queda**: Aplicação de gravidade durante a morte
+- **💥 Colisão**: Sistema de colisão ajustado para rotação
+
+### 🎨 **Estados Visuais:**
+
+1. **💥 Morte Ativada**: `this.hamo.dying = true`
+2. **🔄 Rotação Iniciada**: `deathRotation` começa em 0°
+3. **⬇️ Queda Iniciada**: Gravidade aplicada + impulso inicial
+4. **📈 Rotação Progressiva**: Aumenta 10° por frame (rápido!)
+5. **🛑 Rotação Completa**: Para em exatamente 90°
+6. **💥 Colisão no Chão**: Sistema ajustado para bounding box rotacionada
+7. **🎨 Visual**: Personagem fica vermelho durante a morte
+8. **⏸️ Game Over**: Tela de fim de jogo após 2.5 segundos
+
+### 🔧 **Propriedades Técnicas:**
+
+```javascript
+// Propriedades adicionadas ao objeto hamo:
+dying: false,                    // Estado de morte
+deathRotation: 0,               // Ângulo atual (0-90°)  
+deathRotationSpeed: 10,         // Velocidade (graus/frame) - RÁPIDO!
+deathFalling: false,            // Se está caindo durante morte
+deathCollisionEnabled: true     // Se colisão rotacionada está ativa
+```
+
+### 🎯 **Sequência da Morte:**
+
+1. **Trigger**: Hamo perde última vida
+2. **Ativação**: `dying = true`, `deathRotation = 0`, `deathFalling = true`
+3. **Impulso**: Pequeno impulso para baixo se não estiver caindo
+4. **Física Especial**: `updateDeathPhysics()` assume controle
+5. **Rotação**: Gradual até 90° (muito rápida - 10°/frame)
+6. **Gravidade**: Aplicada continuamente durante queda
+7. **Colisão**: Sistema rotacionado detecta impacto com chão
+8. **Sprite**: Continua usando `hamo_dying.png` (se disponível)
+9. **Delay**: 2.5 segundos para animação completa
+10. **Finalização**: Tela de Game Over aparece
+
+### 🎨 **Efeitos Visuais:**
+
+- ✅ **Compatível** com sprites customizadas
+- ✅ **Compatível** com desenho padrão
+- ✅ **Mantém** espelhamento (esquerda/direita)
+- ✅ **Preserva** outros efeitos visuais
+- ✅ **Rotação suave** frame a frame
+- ✅ **Cor vermelha** durante a morte para feedback visual
+- ✅ **Queda realística** com gravidade
+- ✅ **Colisão rotacionada** - bounding box ajustada
+- ✅ **Impacto no chão** - para de cair ao tocar plataforma
+
+### 🔄 **Sistema de Reset:**
+
+- **Reinício**: `restartGame()` reseta rotação para 0°
+- **Estado**: `dying` volta para `false`
+- **Posição**: Personagem volta à posição normal
+- **Queda**: `deathFalling` resetado para `false`
+- **Colisão**: Sistema volta ao normal
+
+### 🎮 **Como Testar:**
+
+1. Jogue até perder todas as vidas
+2. Observe a rotação rápida (90° em ~0.15s)
+3. Veja o Hamo cair enquanto rotaciona
+4. Note a colisão correta com o chão
+5. Aguarde a tela de Game Over (2.5s)
+6. Pressione 'R' para reiniciar
+7. Personagem volta ao normal
+
+### 🎭 **Impacto Visual:**
+
+- **🎪 Dramático**: Efeito visual impactante na morte
+- **⚡ Rápido**: Rotação muito rápida (10°/frame)
+- **🌍 Realístico**: Queda com gravidade real
+- **🎯 Preciso**: Colisão ajustada para rotação
+- **⚖️ Balanceado**: Não muito longo, mas visível
+- **🎨 Cinematográfico**: Combina rotação + física
+- **💥 Impactante**: Para corretamente no chão
+
+### 🔧 **Sistema Técnico Avançado:**
+
+#### **Colisão Rotacionada:**
+- Calcula bounding box baseada na rotação atual
+- Usa trigonometria para dimensões corretas
+- Detecta colisão com precisão mesmo rotacionado
+
+#### **Física de Morte:**
+- Gravidade independente do sistema normal
+- Movimento horizontal gradualmente reduzido
+- Para completamente ao tocar o chão
+
+#### **Performance:**
+- Sistema otimizado para não afetar FPS
+- Colisão calculada apenas durante morte
+- Reset completo ao reiniciar
+
+A animação de rotação + queda adiciona um toque ultra-dramático e realístico ao feedback visual do game over! 💀⚡✨

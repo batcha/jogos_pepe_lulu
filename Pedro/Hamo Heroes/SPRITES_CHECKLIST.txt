@@ -1,0 +1,46 @@
+📋 LISTA DE SPRITES NECESSÁRIAS - HAMO HEROES (SPRITE SHEETS)
+
+Crie 6 arquivos PNG transparentes na pasta sprites/ (podem ter múltiplos frames):
+
+✅ hamo_idle.png      - Personagem parado (pode ter respiração/piscada)
+✅ hamo_running.png   - Personagem correndo (múltiplos frames de corrida)  
+✅ hamo_jumping.png   - Personagem pulando (pode ter frames de preparação)
+✅ hamo_falling.png   - Personagem caindo (pode ter frames de movimento)
+✅ hamo_attacking.png - Personagem atacando (sequência de ataque)
+✅ hamo_dying.png     - Personagem morrendo (animação de morte)
+
+🎬 SISTEMA DE SPRITE SHEETS:
+- Cada PNG pode conter VÁRIOS FRAMES de animação lado a lado
+- Largura total = 60px × número de frames (ex: 180px = 3 frames)
+- Altura fixa: 80px
+- Frames são cortados automaticamente da esquerda para direita
+
+📐 EXEMPLOS DE TAMANHOS:
+- 1 frame: 60x80px (estático)
+- 2 frames: 120x80px (animação simples)
+- 3 frames: 180x80px (animação suave)
+- 4 frames: 240x80px (animação rica)
+- 6 frames: 360x80px (animação muito detalhada)
+
+IMPORTANTE:
+- Todas as sprites devem estar voltadas para a DIREITA
+- Formato PNG com fundo transparente
+- Altura fixa: 80 pixels
+- Largura: múltiplos de 60 pixels
+- Frames organizados horizontalmente (lado a lado)
+- O jogo espelha automaticamente quando o personagem vai para esquerda
+
+⚡ VELOCIDADES DE ANIMAÇÃO (configuráveis):
+- idle: 15 frames por mudança (animação lenta)
+- running: 8 frames por mudança (animação rápida) 
+- jumping: 10 frames por mudança (animação média)
+- falling: 10 frames por mudança (animação média)
+- attacking: 6 frames por mudança (animação muito rápida)
+- dying: 12 frames por mudança (animação dramática)
+
+STATUS ATUAL:
+[ ] Sprites criadas (podem ter 1 ou mais frames cada)
+[ ] Sprites colocadas na pasta sprites/
+[ ] Jogo testado com novas sprites animadas
+
+O jogo funciona normalmente mesmo sem as sprites (usa desenho padrão).
