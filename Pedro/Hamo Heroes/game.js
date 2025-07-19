@@ -199,8 +199,11 @@ class Game {
             dying: false,         // Estado de morte
             deathRotation: 0,     // Ângulo de rotação na morte (0 a 90 graus)
             deathRotationSpeed: 10, // Velocidade da rotação
+            deathRotationEnabled: false, // 🎮 CONTROLE: Habilita/desabilita rotação
             deathFalling: false,  // Se está caindo durante a morte
             deathCollisionEnabled: true, // Se colisão está ativa durante morte
+            deathAnimationComplete: false, // 🎭 Se chegou ao último frame de morte
+            deathDebugLogged: false, // Para evitar spam de logs
             // Power-ups (apenas 3 tipos)
             speedBoost: 0,        // Velocidade extra (tempo em frames)
             shield: 0,            // Escudo protetor 
@@ -225,14 +228,20 @@ class Game {
             
             img.onload = () => {
                 // Calcular número de frames baseado na largura da imagem
-                const frameWidth = 60; // Largura padrão de cada frame
+                let frameWidth = 60; // Largura padrão de cada frame
+                
+                // 🎭 AJUSTAR PARA SPRITES DE MORTE COM LARGURA DOBRADA
+                if (spriteName === 'dying') {
+                    frameWidth = 120; // Dobro da largura para sprites de morte
+                }
+                
                 const totalFrames = Math.floor(img.width / frameWidth);
                 
                 this.hamoSprites[spriteName].img = img;
                 this.hamoSprites[spriteName].frames = totalFrames;
                 this.hamoSprites[spriteName].currentFrame = 0;
                 
-                console.log(`✅ Sprite carregado: hamo_${spriteName}.png - ${totalFrames} frame(s) (${img.width}x${img.height}px)`);
+                console.log(`✅ Sprite carregado: hamo_${spriteName}.png - ${totalFrames} frame(s) (${img.width}x${img.height}px) [Frame: ${frameWidth}px cada]`);
             };
             
             img.onerror = () => {
@@ -249,13 +258,27 @@ class Game {
             currentSprite.frameTimer++;
             
             if (currentSprite.frameTimer >= currentSprite.frameSpeed) {
-                currentSprite.currentFrame = (currentSprite.currentFrame + 1) % currentSprite.frames;
+                // 🎭 CONTROLE ESPECIAL PARA ANIMAÇÃO DE MORTE
+                if (this.hamo.currentState === 'dying') {
+                    if (currentSprite.currentFrame < currentSprite.frames - 1) {
+                        // Ainda não chegou ao último frame - continuar animação
+                        currentSprite.currentFrame++;
+                        console.log(`💀 Frame morte: ${currentSprite.currentFrame + 1}/${currentSprite.frames}`);
+                    } else {
+                        // Chegou ao último frame - parar animação
+                        this.hamo.deathAnimationComplete = true;
+                        console.log('🎬 ANIMAÇÃO DE MORTE COMPLETA - Parado no último frame!');
+                    }
+                } else {
+                    // Animações normais (loop infinito)
+                    currentSprite.currentFrame = (currentSprite.currentFrame + 1) % currentSprite.frames;
+                }
                 currentSprite.frameTimer = 0;
             }
         }
         
-        // Atualizar rotação de morte
-        if (this.hamo.dying && this.hamo.deathRotation < 90) {
+        // Atualizar rotação de morte (APENAS SE HABILITADA)
+        if (this.hamo.dying && this.hamo.deathRotationEnabled && this.hamo.deathRotation < 90) {
             this.hamo.deathRotation += this.hamo.deathRotationSpeed;
             if (this.hamo.deathRotation > 90) {
                 this.hamo.deathRotation = 90; // Limitar a 90 graus
@@ -548,52 +571,81 @@ class Game {
     }
     
     updateDeathPhysics() {
-        // Durante a morte, aplicar apenas gravidade e colisão com plataformas
+        // Durante a morte, aplicar física básica
         const gravity = 0.8;
         
-        // Aplicar gravidade
-        this.hamo.velocityY += gravity;
+        console.log(`💀 Death Physics - Y: ${this.hamo.y.toFixed(1)}, VelY: ${this.hamo.velocityY.toFixed(2)}, OnGround: ${this.hamo.onGround}`);
+        
+        // SEMPRE aplicar gravidade se não estiver no chão
+        if (!this.hamo.onGround) {
+            this.hamo.velocityY += gravity;
+        }
         
         // Aplicar movimento vertical (queda)
         this.hamo.y += this.hamo.velocityY;
         
-        // Reduzir movimento horizontal gradualmente
-        this.hamo.velocityX *= 0.9;
+        // Aplicar movimento horizontal com fricção
         this.hamo.x += this.hamo.velocityX;
+        this.hamo.velocityX *= 0.95; // Fricção do ar
         
-        // Limites do mundo
-        if (this.hamo.x < 0) this.hamo.x = 0;
+        // Limites horizontais do mundo
+        if (this.hamo.x < 0) {
+            this.hamo.x = 0;
+            this.hamo.velocityX = 0;
+        }
         if (this.hamo.x + this.hamo.width > this.worldWidth) {
             this.hamo.x = this.worldWidth - this.hamo.width;
+            this.hamo.velocityX = 0;
         }
         
-        // Colisão com plataformas durante a morte
+        // Rotação apenas se habilitada
+        if (this.hamo.deathRotationEnabled && this.hamo.deathRotation < 90) {
+            this.hamo.deathRotation += this.hamo.deathRotationSpeed;
+            if (this.hamo.deathRotation > 90) {
+                this.hamo.deathRotation = 90; // Limitar a 90 graus
+            }
+        } else if (!this.hamo.deathRotationEnabled) {
+            this.hamo.deathRotation = 0; // Manter sem rotação se desabilitado
+        }
+        
+        // Colisão com plataformas e chão
         this.checkDeathCollisions();
     }
     
     checkDeathCollisions() {
-        // Ajustar colisão baseado na rotação
-        let collisionBox = this.getRotatedCollisionBox();
-        
+        // Verificar colisão simples durante a morte (sem rotação complicada)
         for (let platform of this.platforms) {
-            // Verificar colisão com a bounding box rotacionada
-            if (this.checkRotatedCollision(collisionBox, platform)) {
-                // Se está caindo e colidiu com uma plataforma
-                if (this.hamo.velocityY > 0) {
-                    // Calcular posição correta baseada na rotação
-                    const groundY = platform.y - this.getCollisionHeight();
+            // Colisão básica - mais confiável
+            if (this.hamo.x + this.hamo.width > platform.x &&
+                this.hamo.x < platform.x + platform.width &&
+                this.hamo.y + this.hamo.height > platform.y &&
+                this.hamo.y < platform.y + platform.height) {
+                
+                // Se está caindo e colidiu por cima da plataforma
+                if (this.hamo.velocityY > 0 && 
+                    this.hamo.y < platform.y) {
                     
-                    if (this.hamo.y + this.getCollisionHeight() >= platform.y) {
-                        this.hamo.y = groundY;
-                        this.hamo.velocityY = 0;
-                        this.hamo.onGround = true;
-                        
-                        // Parar movimento horizontal ao tocar o chão
-                        this.hamo.velocityX = 0;
-                        break;
-                    }
+                    // Posicionar exatamente em cima da plataforma
+                    this.hamo.y = platform.y - this.hamo.height;
+                    this.hamo.velocityY = 0;
+                    this.hamo.onGround = true;
+                    
+                    // Reduzir movimento horizontal gradualmente
+                    this.hamo.velocityX *= 0.8;
+                    
+                    console.log('💥 Hamo tocou o chão durante morte!');
+                    break;
                 }
             }
+        }
+        
+        // Verificar colisão com o chão do mundo
+        if (this.hamo.y + this.hamo.height >= this.worldHeight) {
+            this.hamo.y = this.worldHeight - this.hamo.height;
+            this.hamo.velocityY = 0;
+            this.hamo.onGround = true;
+            this.hamo.velocityX *= 0.8;
+            console.log('💥 Hamo tocou o chão do mundo!');
         }
     }
     
@@ -1126,16 +1178,25 @@ class Game {
     }
     
     gameOver() {
-        // Ativar estado de morte e iniciar rotação + queda
+        // Ativar estado de morte e configurar animação
         this.hamo.dying = true;
-        this.hamo.deathRotation = 0; // Resetar rotação para começar do 0
-        this.hamo.deathFalling = true; // Ativar queda
-        this.hamo.onGround = false; // Permitir que caia
+        this.hamo.deathRotation = 0;
+        this.hamo.deathRotationEnabled = false; // 🎮 CONTROLE: false = sem rotação
+        this.hamo.deathFalling = true;
+        this.hamo.deathAnimationComplete = false; // Resetar para nova animação
+        this.hamo.deathDebugLogged = false; // Resetar log para nova morte
+        this.hamo.onGround = false;
         
-        // Se não está no ar, dar um pequeno impulso para cair melhor
-        if (Math.abs(this.hamo.velocityY) < 2) {
-            this.hamo.velocityY = 2; // Pequeno impulso para baixo
+        // SEMPRE dar um impulso para garantir que comece a cair
+        this.hamo.velocityY = 3;
+        
+        // Impulso horizontal para efeito dramático
+        if (Math.abs(this.hamo.velocityX) < 1) {
+            this.hamo.velocityX = (Math.random() - 0.5) * 4;
         }
+        
+        // Log para debug
+        console.log('🎭 MORTE INICIADA - Sprites dobrados, rotação desabilitada, para no último frame!');
         
         // Pequeno delay para mostrar a animação completa de morte + rotação + queda
         setTimeout(() => {
@@ -1546,19 +1607,37 @@ class Game {
         
         if (spriteLoaded) {
             // Calcular posição do frame atual na sprite sheet
-            const frameWidth = 60; // Largura padrão de cada frame
-            const frameHeight = 80; // Altura padrão
+            let frameWidth = 60; // Largura padrão de cada frame
+            let frameHeight = 80; // Altura padrão
+            
+            // 🎭 DOBRAR LARGURA DURANTE ANIMAÇÃO DE MORTE
+            if (this.hamo.dying) {
+                frameWidth = 120; // Dobro da largura para sprites de morte
+                // Debug apenas uma vez por morte (remover log repetitivo)
+                if (!this.hamo.deathDebugLogged) {
+                    console.log('💀 Usando sprites de morte com largura dobrada!');
+                    this.hamo.deathDebugLogged = true;
+                }
+            }
+            
             const currentFrame = currentSprite.currentFrame;
             const sourceX = currentFrame * frameWidth;
             const sourceY = 0;
+            
+            // Calcular tamanho de desenho (também dobrado se morrendo)
+            const drawWidth = this.hamo.dying ? this.hamo.width * 2 : this.hamo.width;
+            const drawHeight = this.hamo.height;
+            
+            // Ajustar posição X para centralizar sprite mais largo
+            const adjustedDrawX = this.hamo.dying ? drawX - this.hamo.width/2 : drawX;
             
             // Desenhar sprite sheet (cortando o frame correto)
             this.ctx.drawImage(
                 currentSprite.img,        // Imagem source
                 sourceX, sourceY,         // Posição na sprite sheet (x, y)
                 frameWidth, frameHeight,  // Tamanho do frame na sprite sheet
-                drawX, drawY,             // Posição no canvas
-                this.hamo.width, this.hamo.height  // Tamanho no canvas
+                adjustedDrawX, drawY,     // Posição no canvas (ajustada para centralizar)
+                drawWidth, drawHeight     // Tamanho no canvas (dobrado se morrendo)
             );
             
             // Debug: mostrar info da animação (remover em produção)
@@ -1931,8 +2010,31 @@ class Game {
         // Resetar estados específicos de morte
         this.hamo.dying = false;
         this.hamo.deathRotation = 0;
+        this.hamo.deathRotationEnabled = false; // Resetar controle de rotação
         this.hamo.deathFalling = false;
         this.hamo.deathCollisionEnabled = true;
+        this.hamo.deathAnimationComplete = false; // Resetar estado da animação
+        this.hamo.deathDebugLogged = false; // Resetar log para próxima morte
+    }
+    
+    // 🎮 FUNÇÕES DE CONTROLE PARA ANIMAÇÃO DE MORTE
+    enableDeathRotation() {
+        this.hamo.deathRotationEnabled = true;
+        console.log('✅ Rotação de morte HABILITADA');
+    }
+    
+    disableDeathRotation() {
+        this.hamo.deathRotationEnabled = false;
+        this.hamo.deathRotation = 0;
+        console.log('❌ Rotação de morte DESABILITADA');
+    }
+    
+    toggleDeathRotation() {
+        this.hamo.deathRotationEnabled = !this.hamo.deathRotationEnabled;
+        if (!this.hamo.deathRotationEnabled) {
+            this.hamo.deathRotation = 0;
+        }
+        console.log(`🔄 Rotação de morte: ${this.hamo.deathRotationEnabled ? 'HABILITADA' : 'DESABILITADA'}`);
     }
     
     gameLoop() {
