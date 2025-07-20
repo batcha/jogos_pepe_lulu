@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coquinho Roda Tapa - Phaser Edition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    <style>
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background: linear-gradient(45deg, #00b894, #00cec9);
+            color: #ffffff;
+            text-shadow: 2px 2px 0 #000000;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #gameCanvas {
+            display: block;
+            margin: 0 auto;
+            border: 4px solid #d63031;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            background-color: #87CEEB;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 10px;
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .game-instructions {
+            text-align: center;
+            margin-top: 10px;
+            max-width: 800px;
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .highlight {
+            color: #f1c40f;
+            font-weight: bold;
+        }
+
+        .mobile-hint {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .game-info {
+                font-size: 12px;
+                padding: 8px;
+            }
+            
+            .game-instructions {
+                font-size: 10px;
+                padding: 10px;
+            }
+            
+            body {
+                overflow: auto;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .game-container {
+                padding: 5px;
+            }
+            
+            .game-info {
+                margin-bottom: 5px;
+            }
+            
+            .game-instructions {
+                margin-top: 5px;
+            }
+        }
+
+        /* Gamepad Connected Indicator */
+        .gamepad-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: #00ff00;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 10px;
+            display: none;
+        }
+
+        .gamepad-status.connected {
+            display: block;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #00b894, #00cec9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #ffffff;
+            border-top: 5px solid #f1c40f;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Performance Stats */
+        .stats {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: #ffffff;
+            padding: 5px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-family: monospace;
+            display: none;
+        }
+
+        .stats.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-spinner"></div>
+        <h2>Carregando Coquinho Roda Tapa...</h2>
+        <p>Preparando o melhor jogo de coco do mundo!</p>
+    </div>
+
+    <!-- Gamepad Status -->
+    <div id="gamepadStatus" class="gamepad-status">
+        🎮 Gamepad Conectado
+    </div>
+
+    <!-- Performance Stats -->
+    <div id="stats" class="stats">
+        <div>FPS: <span id="fps">60</span></div>
+        <div>Objects: <span id="objects">0</span></div>
+    </div>
+
+    <!-- Main Game Container -->
+    <div class="game-container">
+        <h1 class="text-2xl md:text-4xl text-center mb-4">🥥 Coquinho Roda Tapa 🥥</h1>
+        
+        <!-- Game Info Panel -->
+        <div class="game-info">
+            <div>🏆 Pontos: <span id="score-display">0</span></div>
+            <div>⏱️ Tempo: <span id="timer-display">0.00s</span></div>
+            <div>👥 Turistas: <span id="tourist-display">0</span></div>
+        </div>
+        
+        <!-- Game Canvas Container -->
+        <div id="gameCanvas"></div>
+        
+        <!-- Instructions -->
+        <div class="game-instructions">
+            <!-- Desktop Instructions -->
+            <div id="desktop-instructions" class="hidden md:block">
+                <p>
+                    🎮 <span class="highlight">CONTROLES:</span><br>
+                    <span class="highlight">Setas</span> = Mover/Pular | 
+                    <span class="highlight">X/Espaço</span> = Roda Tapa | 
+                    <span class="highlight">Gamepad</span> = Totalmente Suportado!
+                </p>
+                <p class="mt-2">
+                    🎯 <span class="highlight">OBJETIVO:</span> Elimine todos os turistas com seu Roda Tapa!<br>
+                    🥥 Pegue o <span class="mobile-hint">Caju Vermelho</span> para um super tapa dourado!
+                </p>
+            </div>
+
+            <!-- Mobile Instructions -->
+            <div id="mobile-instructions" class="md:hidden">
+                <p>
+                    📱 <span class="mobile-hint">MODO MOBILE:</span><br>
+                    Use os <span class="highlight">botões na tela</span> para jogar<br>
+                    O jogo se adapta automaticamente ao seu dispositivo!
+                </p>
+                <p class="mt-2">
+                    🎯 Elimine todos os turistas com o Roda Tapa!<br>
+                    🥥 Pegue o <span class="mobile-hint">Caju</span> para poder especial!
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Scripts -->
+    <script src="gamepad.js"></script>
+    <script src="game.js"></script>
+
+    <!-- Additional Scripts -->
+    <script>
+        // === UTILITÁRIOS E CONFIGURAÇÕES EXTRAS ===
+        
+        // Detectar tipo de dispositivo
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isTablet = /(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(navigator.userAgent);
+        const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+        // Configurar exibição de instruções baseada no dispositivo
+        if (isMobile || isTouchDevice) {
+            document.getElementById('desktop-instructions').style.display = 'none';
+            document.getElementById('mobile-instructions').style.display = 'block';
+        } else {
+            document.getElementById('desktop-instructions').style.display = 'block';
+            document.getElementById('mobile-instructions').style.display = 'none';
+        }
+
+        // Sistema de detecção de gamepad
+        let gamepadConnected = false;
+        let gamepadStatusElement = document.getElementById('gamepadStatus');
+
+        window.addEventListener('gamepadconnected', (e) => {
+            gamepadConnected = true;
+            gamepadStatusElement.classList.add('connected');
+            gamepadStatusElement.textContent = `🎮 ${e.gamepad.id.substring(0, 20)}... Conectado`;
+            console.log('Gamepad conectado:', e.gamepad);
+        });
+
+        window.addEventListener('gamepaddisconnected', (e) => {
+            gamepadConnected = false;
+            gamepadStatusElement.classList.remove('connected');
+            console.log('Gamepad desconectado:', e.gamepad);
+        });
+
+        // Sistema de Loading
+        let gameLoaded = false;
+        const loadingScreen = document.getElementById('loadingScreen');
+
+        function hideLoadingScreen() {
+            if (!gameLoaded) {
+                gameLoaded = true;
+                setTimeout(() => {
+                    loadingScreen.classList.add('hidden');
+                }, 1000);
+            }
+        }
+
+        // Auto-hide loading screen após 3 segundos como fallback
+        setTimeout(hideLoadingScreen, 3000);
+
+        // Performance Monitor (apenas para desenvolvimento)
+        let showStats = false;
+        const statsElement = document.getElementById('stats');
+
+        // Alternar stats com Ctrl+Shift+S
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+                showStats = !showStats;
+                statsElement.classList.toggle('show', showStats);
+            }
+        });
+
+        // Atualizar stats de performance
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let fpsDisplay = document.getElementById('fps');
+
+        function updateStats() {
+            if (!showStats) return;
+            
+            frameCount++;
+            const currentTime = performance.now();
+            
+            if (currentTime - lastTime >= 1000) {
+                fpsDisplay.textContent = frameCount;
+                frameCount = 0;
+                lastTime = currentTime;
+            }
+            
+            requestAnimationFrame(updateStats);
+        }
+        
+        updateStats();
+
+        // Otimizações para mobile
+        if (isMobile) {
+            // Prevenir zoom duplo-toque
+            document.addEventListener('touchstart', (e) => {
+                if (e.touches.length > 1) {
+                    e.preventDefault();
+                }
+            });
+
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', (e) => {
+                const now = (new Date()).getTime();
+                if (now - lastTouchEnd <= 300) {
+                    e.preventDefault();
+                }
+                lastTouchEnd = now;
+            });
+
+            // Otimizar performance em mobile
+            document.body.style.webkitUserSelect = 'none';
+            document.body.style.webkitTouchCallout = 'none';
+        }
+
+        // Fullscreen API
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('Fullscreen não disponível:', err);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Easter egg: F11 para fullscreen
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F11') {
+                e.preventDefault();
+                toggleFullscreen();
+            }
+        });
+
+        // Comunicação com o jogo Phaser
+        window.gameAPI = {
+            updateScore: (score) => {
+                document.getElementById('score-display').textContent = score;
+            },
+            updateTimer: (time) => {
+                document.getElementById('timer-display').textContent = time;
+            },
+            updateTourists: (count) => {
+                document.getElementById('tourist-display').textContent = count;
+            },
+            gameLoaded: () => {
+                hideLoadingScreen();
+            },
+            isGamepadConnected: () => {
+                return gamepadConnected;
+            }
+        };
+
+        // Prevenir menu de contexto no canvas
+        document.addEventListener('contextmenu', (e) => {
+            if (e.target.tagName === 'CANVAS') {
+                e.preventDefault();
+            }
+        });
+
+        // Debug: Mostrar informações do dispositivo
+        console.log('=== DEVICE INFO ===');
+        console.log('Mobile:', isMobile);
+        console.log('Tablet:', isTablet);
+        console.log('Touch:', isTouchDevice);
+        console.log('Screen:', screen.width + 'x' + screen.height);
+        console.log('Viewport:', window.innerWidth + 'x' + window.innerHeight);
+        console.log('User Agent:', navigator.userAgent);
+    </script>
+</body>
+</html>
