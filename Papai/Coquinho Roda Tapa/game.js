@@ -1164,7 +1164,7 @@ class GameScene extends Phaser.Scene {
             '............K.....K...#####...............',
             'P........####...###...........##..........',
             '####...T...C.................###.........G',
-            '##########################################'  // 16
+            '##########################################'  // 16,
         ];
 
         // Armazenar dimensões do nível para configurar a câmera
@@ -1259,9 +1259,25 @@ class GameScene extends Phaser.Scene {
                         this.powerups.add(powerup);
                         break;
                     case 'G':
+                        // Criar objetivo com visual mais chamativo e física correta
                         this.goal = this.add.rectangle(x, y, this.tileSize, this.tileSize*2, 0x2ecc71);
+                        this.goal.setStrokeStyle(4, 0x27ae60, 1);
+                        
+                        // Adicionar física como sensor (não bloqueia movimento)
                         this.physics.add.existing(this.goal, true);
-                        console.log(`Objetivo criado na posição: x=${x}, y=${y}`);
+                        this.goal.body.setSize(this.tileSize, this.tileSize*2);
+                        
+                        // Adicionar efeito visual piscante para destacar
+                        this.tweens.add({
+                            targets: this.goal,
+                            alpha: 0.5,
+                            duration: 1000,
+                            yoyo: true,
+                            repeat: -1,
+                            ease: 'Sine.easeInOut'
+                        });
+                        
+                        console.log(`🎯 Objetivo criado na posição: x=${x}, y=${y}, tamanho: ${this.tileSize}x${this.tileSize*2}`);
                         break;
                 }
             }
@@ -1399,16 +1415,42 @@ class GameScene extends Phaser.Scene {
             }
         });
         
-        // Jogador com objetivo
+        // Jogador com objetivo - usar overlap para sensor
         if (this.goal) {
             this.physics.add.overlap(this.player, this.goal, () => {
-                console.log('Jogador tocou no objetivo!');
-                console.log('Inimigos restantes:', this.enemiesRemaining);
-                if (this.enemiesRemaining <= 0 && !this.gameWon) {
-                    console.log('Condições de vitória atendidas - chamando winGame()');
-                    this.winGame();
-                } else if (this.enemiesRemaining > 0) {
-                    console.log('Ainda há inimigos para derrotar!');
+                console.log('🎯 Jogador tocou no objetivo!');
+                console.log('📊 Inimigos restantes:', this.enemiesRemaining);
+                this.checkWinCondition();
+            });
+        }
+    }
+    
+    // Nova função para verificar condição de vitória
+    checkWinCondition() {
+        if (this.enemiesRemaining <= 0 && !this.gameWon) {
+            console.log('✅ Condições de vitória atendidas - chamando winGame()');
+            this.winGame();
+        } else if (this.enemiesRemaining > 0) {
+            console.log(`❌ Ainda há ${this.enemiesRemaining} inimigo(s) para derrotar!`);
+            
+            // Mostrar mensagem temporária
+            if (this.warningMessage) {
+                this.warningMessage.destroy();
+            }
+            this.warningMessage = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY - 50, 
+                `DERROTE TODOS OS INIMIGOS PRIMEIRO!\n${this.enemiesRemaining} restante(s)`, {
+                fontSize: '16px',
+                fontFamily: 'Press Start 2P',
+                fill: '#ff0000',
+                stroke: '#000000',
+                strokeThickness: 2,
+                align: 'center'
+            }).setOrigin(0.5).setScrollFactor(0);
+            
+            // Remover mensagem após 2 segundos
+            this.time.delayedCall(2000, () => {
+                if (this.warningMessage) {
+                    this.warningMessage.destroy();
                 }
             });
         }
@@ -1472,6 +1514,20 @@ class GameScene extends Phaser.Scene {
         
         // Atualizar input manager
         this.inputManager.update();
+        
+        // Verificação manual adicional para o objetivo
+        if (this.player && this.goal && this.enemiesRemaining <= 0 && !this.gameWon) {
+            const distance = Phaser.Math.Distance.Between(
+                this.player.x, this.player.y,
+                this.goal.x, this.goal.y
+            );
+            
+            // Se estiver muito próximo do objetivo (sobreposição)
+            if (distance < 50) {
+                console.log('🎯 Detecção manual: Jogador próximo do objetivo!');
+                this.checkWinCondition();
+            }
+        }
         
         // Atualizar UI
         const elapsedTime = (Date.now() - this.startTime) / 1000;
