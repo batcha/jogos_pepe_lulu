@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Mapas - Coquinho Roda Tapa</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: auto;
+        }
+
+        .header {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            display: flex;
+            max-width: 1600px;
+            margin: 20px auto;
+            gap: 20px;
+            padding: 0 20px;
+        }
+
+        .sidebar {
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            width: 300px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .main-content {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .tool-section {
+            margin-bottom: 25px;
+        }
+
+        .tool-section h3 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            border-bottom: 2px solid #ffd700;
+            padding-bottom: 5px;
+        }
+
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            gap: 10px;
+        }
+
+        .tool-button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            border: none;
+            border-radius: 10px;
+            padding: 15px;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tool-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .tool-button.selected {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+        }
+
+        .tool-button .tooltip {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .tool-button:hover .tooltip {
+            opacity: 1;
+        }
+
+        .map-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .control-group input, .control-group select {
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            backdrop-filter: blur(5px);
+        }
+
+        .control-group input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary { background: linear-gradient(45deg, #3498db, #2980b9); color: white; }
+        .btn-success { background: linear-gradient(45deg, #2ecc71, #27ae60); color: white; }
+        .btn-warning { background: linear-gradient(45deg, #f39c12, #e67e22); color: white; }
+        .btn-danger { background: linear-gradient(45deg, #e74c3c, #c0392b); color: white; }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        #mapCanvas {
+            border: 3px solid #ffd700;
+            border-radius: 10px;
+            background: #87CEEB;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            cursor: crosshair;
+        }
+
+        .map-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+        }
+
+        .map-info h4 {
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+        }
+
+        .code-output {
+            background: #1e1e1e;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #f8f8f2;
+            max-height: 400px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .copy-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .copy-button:hover {
+            background: #45a049;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                position: relative;
+                width: 100%;
+            }
+            
+            .tool-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🥥 Editor de Mapas - Coquinho Roda Tapa 🥥</h1>
+        <p>Crie e edite mapas visuamente para seu jogo!</p>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <div class="tool-section">
+                <h3>🎨 Ferramentas</h3>
+                <div class="tool-grid">
+                    <button class="tool-button selected" data-tool="." title="Espaço Vazio">
+                        <span style="color: #87CEEB;">·</span>
+                        <div class="tooltip">Espaço Vazio</div>
+                    </button>
+                    <button class="tool-button" data-tool="#" title="Plataforma">
+                        <span style="color: #f39c12;">■</span>
+                        <div class="tooltip">Plataforma</div>
+                    </button>
+                    <button class="tool-button" data-tool="P" title="Jogador">
+                        <span style="color: #2ecc71;">🥥</span>
+                        <div class="tooltip">Jogador (Coquinho)</div>
+                    </button>
+                    <button class="tool-button" data-tool="T" title="Turista Selfie">
+                        <span style="color: #e74c3c;">📱</span>
+                        <div class="tooltip">Turista Selfie</div>
+                    </button>
+                    <button class="tool-button" data-tool="K" title="Criança de Boia">
+                        <span style="color: #f39c12;">🏊</span>
+                        <div class="tooltip">Criança de Boia</div>
+                    </button>
+                    <button class="tool-button" data-tool="B" title="Tiozão Bronzeador">
+                        <span style="color: #3498db;">🌞</span>
+                        <div class="tooltip">Tiozão Bronzeador</div>
+                    </button>
+                    <button class="tool-button" data-tool="C" title="Caju (Power-up)">
+                        <span style="color: #e74c3c;">🥜</span>
+                        <div class="tooltip">Caju (Power-up)</div>
+                    </button>
+                    <button class="tool-button" data-tool="G" title="Objetivo">
+                        <span style="color: #2ecc71;">🎯</span>
+                        <div class="tooltip">Objetivo</div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>⚙️ Configurações</h3>
+                <div class="map-controls">
+                    <div class="control-group">
+                        <label>Largura:</label>
+                        <input type="number" id="mapWidth" value="30" min="10" max="100">
+                    </div>
+                    <div class="control-group">
+                        <label>Altura:</label>
+                        <input type="number" id="mapHeight" value="15" min="10" max="50">
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="createNewMap()">🆕 Novo Mapa</button>
+                    <button class="btn btn-warning" onclick="clearMap()">🗑️ Limpar</button>
+                    <button class="btn btn-success" onclick="generateCode()">💻 Gerar Código</button>
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <h3>📋 Mapas Prontos</h3>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="loadTemplate('tutorial')">📚 Tutorial</button>
+                    <button class="btn btn-primary" onclick="loadTemplate('medium')">🏗️ Médio</button>
+                    <button class="btn btn-primary" onclick="loadTemplate('large')">🗺️ Grande</button>
+                    <button class="btn btn-primary" onclick="loadTemplate('tower')">🏢 Torre</button>
+                    <button class="btn btn-primary" onclick="loadTemplate('maze')">🌀 Labirinto</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div style="overflow: auto; max-height: 80vh;">
+                <canvas id="mapCanvas"></canvas>
+            </div>
+
+            <div class="map-info">
+                <h4>📊 Estatísticas do Mapa</h4>
+                <div id="mapStats">
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-icon" style="background: #87CEEB;"></div>
+                            <span>Espaços vazios: <span id="emptyCount">0</span></span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-icon" style="background: #f39c12;"></div>
+                            <span>Plataformas: <span id="platformCount">0</span></span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-icon" style="background: #2ecc71;"></div>
+                            <span>Jogadores: <span id="playerCount">0</span></span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-icon" style="background: #e74c3c;"></div>
+                            <span>Turistas: <span id="touristCount">0</span></span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-icon" style="background: #f39c12;"></div>
+                            <span>Crianças: <span id="childCount">0</span></span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-icon" style="background: #3498db;"></div>
+                            <span>Tiozões: <span id="sunscreenCount">0</span></span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-icon" style="background: #e74c3c;"></div>
+                            <span>Cajus: <span id="powerupCount">0</span></span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-icon" style="background: #2ecc71;"></div>
+                            <span>Objetivos: <span id="goalCount">0</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="codeOutput" class="code-output" style="display: none;">
+                <button class="copy-button" onclick="copyCode()">📋 Copiar</button>
+                <pre id="generatedCode"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variáveis globais
+        let currentTool = '.';
+        let mapData = [];
+        let mapWidth = 30;
+        let mapHeight = 15;
+        let tileSize = 20;
+        let canvas, ctx;
+        let isDrawing = false;
+
+        // Cores para cada elemento
+        const colors = {
+            '.': '#87CEEB',  // Azul céu
+            '#': '#f39c12',  // Laranja (plataformas)
+            'P': '#2ecc71',  // Verde (jogador)
+            'T': '#e74c3c',  // Vermelho (turista)
+            'K': '#f39c12',  // Laranja (criança)
+            'B': '#3498db',  // Azul (tiozão)
+            'C': '#e74c3c',  // Vermelho escuro (caju)
+            'G': '#2ecc71'   // Verde escuro (objetivo)
+        };
+
+        // Símbolos para renderizar
+        const symbols = {
+            '.': '',
+            '#': '■',
+            'P': '🥥',
+            'T': '📱',
+            'K': '🏊',
+            'B': '🌞',
+            'C': '🥜',
+            'G': '🎯'
+        };
+
+        // Inicialização
+        window.addEventListener('load', function() {
+            canvas = document.getElementById('mapCanvas');
+            ctx = canvas.getContext('2d');
+            
+            // Configurar eventos
+            setupEventListeners();
+            
+            // Criar mapa inicial
+            createNewMap();
+        });
+
+        function setupEventListeners() {
+            // Seleção de ferramentas
+            document.querySelectorAll('.tool-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    document.querySelectorAll('.tool-button').forEach(b => b.classList.remove('selected'));
+                    this.classList.add('selected');
+                    currentTool = this.dataset.tool;
+                });
+            });
+
+            // Eventos de desenho no canvas
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseleave', stopDrawing);
+
+            // Eventos touch para mobile
+            canvas.addEventListener('touchstart', handleTouch);
+            canvas.addEventListener('touchmove', handleTouch);
+            canvas.addEventListener('touchend', stopDrawing);
+
+            // Atualizar dimensões quando mudarem
+            document.getElementById('mapWidth').addEventListener('change', updateMapSize);
+            document.getElementById('mapHeight').addEventListener('change', updateMapSize);
+        }
+
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            
+            if (e.type === 'touchstart') {
+                isDrawing = true;
+            }
+            
+            if (isDrawing) {
+                drawAtPosition(x, y);
+            }
+        }
+
+        function updateMapSize() {
+            mapWidth = parseInt(document.getElementById('mapWidth').value);
+            mapHeight = parseInt(document.getElementById('mapHeight').value);
+            createNewMap();
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            draw(e);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            drawAtPosition(x, y);
+        }
+
+        function drawAtPosition(x, y) {
+            const col = Math.floor(x / tileSize);
+            const row = Math.floor(y / tileSize);
+            
+            if (col >= 0 && col < mapWidth && row >= 0 && row < mapHeight) {
+                // Regra especial: só pode haver um jogador (P) e um objetivo (G)
+                if (currentTool === 'P') {
+                    // Remove o jogador anterior
+                    for (let r = 0; r < mapHeight; r++) {
+                        for (let c = 0; c < mapWidth; c++) {
+                            if (mapData[r][c] === 'P') {
+                                mapData[r][c] = '.';
+                            }
+                        }
+                    }
+                }
+                
+                if (currentTool === 'G') {
+                    // Remove o objetivo anterior
+                    for (let r = 0; r < mapHeight; r++) {
+                        for (let c = 0; c < mapWidth; c++) {
+                            if (mapData[r][c] === 'G') {
+                                mapData[r][c] = '.';
+                            }
+                        }
+                    }
+                }
+                
+                mapData[row][col] = currentTool;
+                renderMap();
+                updateStats();
+            }
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function createNewMap() {
+            mapWidth = parseInt(document.getElementById('mapWidth').value);
+            mapHeight = parseInt(document.getElementById('mapHeight').value);
+            
+            // Ajustar tamanho do tile baseado no tamanho do mapa
+            tileSize = Math.max(15, Math.min(30, 600 / Math.max(mapWidth, mapHeight)));
+            
+            canvas.width = mapWidth * tileSize;
+            canvas.height = mapHeight * tileSize;
+            
+            // Inicializar matriz
+            mapData = [];
+            for (let row = 0; row < mapHeight; row++) {
+                mapData[row] = [];
+                for (let col = 0; col < mapWidth; col++) {
+                    mapData[row][col] = '.';
+                }
+            }
+            
+            renderMap();
+            updateStats();
+        }
+
+        function clearMap() {
+            if (confirm('Tem certeza que deseja limpar todo o mapa?')) {
+                createNewMap();
+            }
+        }
+
+        function renderMap() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (let row = 0; row < mapHeight; row++) {
+                for (let col = 0; col < mapWidth; col++) {
+                    const x = col * tileSize;
+                    const y = row * tileSize;
+                    const tile = mapData[row][col];
+                    
+                    // Desenhar fundo
+                    ctx.fillStyle = colors[tile];
+                    ctx.fillRect(x, y, tileSize, tileSize);
+                    
+                    // Desenhar borda
+                    ctx.strokeStyle = '#333';
+                    ctx.lineWidth = 0.5;
+                    ctx.strokeRect(x, y, tileSize, tileSize);
+                    
+                    // Desenhar símbolo se houver
+                    if (symbols[tile] && tile !== '.') {
+                        ctx.font = `${Math.floor(tileSize * 0.6)}px Arial`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillStyle = '#fff';
+                        ctx.strokeStyle = '#000';
+                        ctx.lineWidth = 1;
+                        const centerX = x + tileSize / 2;
+                        const centerY = y + tileSize / 2;
+                        ctx.strokeText(symbols[tile], centerX, centerY);
+                        ctx.fillText(symbols[tile], centerX, centerY);
+                    }
+                }
+            }
+        }
+
+        function updateStats() {
+            const stats = {
+                '.': 0, '#': 0, 'P': 0, 'T': 0, 'K': 0, 'B': 0, 'C': 0, 'G': 0
+            };
+            
+            for (let row = 0; row < mapHeight; row++) {
+                for (let col = 0; col < mapWidth; col++) {
+                    stats[mapData[row][col]]++;
+                }
+            }
+            
+            document.getElementById('emptyCount').textContent = stats['.'];
+            document.getElementById('platformCount').textContent = stats['#'];
+            document.getElementById('playerCount').textContent = stats['P'];
+            document.getElementById('touristCount').textContent = stats['T'];
+            document.getElementById('childCount').textContent = stats['K'];
+            document.getElementById('sunscreenCount').textContent = stats['B'];
+            document.getElementById('powerupCount').textContent = stats['C'];
+            document.getElementById('goalCount').textContent = stats['G'];
+        }
+
+        function generateCode() {
+            let code = '        const levelData = [\n';
+            
+            for (let row = 0; row < mapHeight; row++) {
+                let line = '            \'';
+                for (let col = 0; col < mapWidth; col++) {
+                    line += mapData[row][col];
+                }
+                line += '\','; // ${row}
+                
+                if (row < mapHeight - 1) {
+                    code += line + '\n';
+                } else {
+                    code += line.slice(0, -1) + '  // ' + row + '\n';
+                }
+            }
+            
+            code += '        ];';
+            
+            document.getElementById('generatedCode').textContent = code;
+            document.getElementById('codeOutput').style.display = 'block';
+            document.getElementById('codeOutput').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function copyCode() {
+            const code = document.getElementById('generatedCode').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const button = document.querySelector('.copy-button');
+                const originalText = button.textContent;
+                button.textContent = '✅ Copiado!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        function loadTemplate(templateName) {
+            const templates = {
+                tutorial: {
+                    width: 20,
+                    height: 12,
+                    data: [
+                        '....................',
+                        '....................',
+                        '....................',
+                        '....................',
+                        '....................',
+                        '....................',
+                        '....................',
+                        '....................',
+                        '...P.......T.......G',
+                        '####################',
+                        '####################',
+                        '####################'
+                    ]
+                },
+                medium: {
+                    width: 20,
+                    height: 12,
+                    data: [
+                        '....................',
+                        '....................',
+                        '............T.......',
+                        '..........####......',
+                        '..C.................',
+                        '######..............',
+                        '....................',
+                        '..........K.........',
+                        '...P....######......',
+                        '########............',
+                        '................B.G.',
+                        '####################'
+                    ]
+                },
+                large: {
+                    width: 40,
+                    height: 12,
+                    data: [
+                        '........................................',
+                        '..T.......K.......B.........C..........T',
+                        '.###.....###.....###......####......###',
+                        '........................................',
+                        '...C...........C...........C............',
+                        '######.....################.....########',
+                        '........................................',
+                        '........T...K.......B..........T.......K',
+                        '...P..#######...#########....######....#',
+                        '######........................##........',
+                        '..................................G.....',
+                        '########################################'
+                    ]
+                },
+                tower: {
+                    width: 20,
+                    height: 20,
+                    data: [
+                        '..........G.........',
+                        '......#########.....',
+                        '......#.......#.....',
+                        '......#...T...#.....',
+                        '......#.......#.....',
+                        '......###...###.....',
+                        '..........C.........',
+                        '......###...###.....',
+                        '......#.......#.....',
+                        '......#...K...#.....',
+                        '......#.......#.....',
+                        '......###...###.....',
+                        '..........C.........',
+                        '......###...###.....',
+                        '......#.......#.....',
+                        '......#...B...#.....',
+                        '......#.......#.....',
+                        '......#########.....',
+                        '..........P.........',
+                        '####################'
+                    ]
+                },
+                maze: {
+                    width: 36,
+                    height: 20,
+                    data: [
+                        '####################################',
+                        '#..T.....#.........C...#..........G#',
+                        '#.####...#.####.#####..#.#######.#.#',
+                        '#......#.#....#.....#..#.......#.#.#',
+                        '###.##.#.####.#####.#..#######.#.#.#',
+                        '#...#....#..........#..........#...#',
+                        '#.#.######.#########.##########.###.#',
+                        '#.#........#.......K.#........#.....#',
+                        '#.##########.#######.#.######.#####.#',
+                        '#..........#...C.....#......#.......#',
+                        '#.#######.###.#####.########.#######.#',
+                        '#.......#...#.....#........#.......#.#',
+                        '#######.###.#####.#########.#######.#.#',
+                        '#.......#.........#.......#.........#.#',
+                        '#.#####.#.#######.#######.#.#######.#.#',
+                        '#.....#...#.....#.......#...#.......#.#',
+                        '#####.###.#.###.#######.###.#.#####.#.#',
+                        '#.....#.#.#.#.#.......#.#.#.#.#...#...#',
+                        '#.###.#.#.#.#.#######.#.#.#.#.#.#.###.#',
+                        '#P..B...#...#.........#...#...#.......#',
+                        '####################################'
+                    ]
+                }
+            };
+
+            const template = templates[templateName];
+            if (template) {
+                document.getElementById('mapWidth').value = template.width;
+                document.getElementById('mapHeight').value = template.height;
+                mapWidth = template.width;
+                mapHeight = template.height;
+                
+                // Ajustar tamanho do tile
+                tileSize = Math.max(15, Math.min(30, 600 / Math.max(mapWidth, mapHeight)));
+                canvas.width = mapWidth * tileSize;
+                canvas.height = mapHeight * tileSize;
+                
+                // Carregar dados
+                mapData = [];
+                for (let row = 0; row < mapHeight; row++) {
+                    mapData[row] = [];
+                    const line = template.data[row] || '';
+                    for (let col = 0; col < mapWidth; col++) {
+                        mapData[row][col] = line[col] || '.';
+                    }
+                }
+                
+                renderMap();
+                updateStats();
+            }
+        }
+    </script>
+</body>
+</html>
