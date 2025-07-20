@@ -1165,9 +1165,9 @@ class GameScene extends Phaser.Scene {
             '....................K...........................................C...', // 14
             '................########................................................', // 15
             '................................................................T.......', // 16
-            '..............................................######################G', // 17
-            '####################################################################', // 18
-            '####################################################################'  // 19
+            '..............................................######################G#', // 17
+            '######################################################################', // 18
+            '######################################################################'  // 19
         ];
 
         // Armazenar dimensões do nível para configurar a câmera
@@ -1264,6 +1264,7 @@ class GameScene extends Phaser.Scene {
                     case 'G':
                         this.goal = this.add.rectangle(x, y, this.tileSize, this.tileSize*2, 0x2ecc71);
                         this.physics.add.existing(this.goal, true);
+                        console.log(`Objetivo criado na posição: x=${x}, y=${y}`);
                         break;
                 }
             }
@@ -1278,6 +1279,13 @@ class GameScene extends Phaser.Scene {
         console.log(`   🌞 Tiozões Bronzeador: ${this.enemyCount.sunscreen_guy}`);
         console.log(`   🎯 Total de Inimigos: ${this.enemyCount.total}`);
         console.log('========================');
+        
+        // IMPORTANTE: Definir inimigos restantes após criar todos
+        this.enemiesRemaining = this.enemyCount.total;
+        console.log('=== INICIALIZAÇÃO FINAL ===');
+        console.log(`🎯 Inimigos restantes inicializados: ${this.enemiesRemaining}`);
+        console.log(`📍 Objetivo criado: ${this.goal ? 'SIM' : 'NÃO'}`);
+        console.log('===========================');
     }
 
     createUI() {
@@ -1397,8 +1405,13 @@ class GameScene extends Phaser.Scene {
         // Jogador com objetivo
         if (this.goal) {
             this.physics.add.overlap(this.player, this.goal, () => {
+                console.log('Jogador tocou no objetivo!');
+                console.log('Inimigos restantes:', this.enemiesRemaining);
                 if (this.enemiesRemaining <= 0 && !this.gameWon) {
+                    console.log('Condições de vitória atendidas - chamando winGame()');
                     this.winGame();
+                } else if (this.enemiesRemaining > 0) {
+                    console.log('Ainda há inimigos para derrotar!');
                 }
             });
         }
@@ -1424,12 +1437,27 @@ class GameScene extends Phaser.Scene {
                     this.inputManager.vibrate(0.5, 0.7, 100);
                     
                     // Verificar se todos os inimigos foram nocauteados
+                    console.log('Inimigo derrotado! Inimigos restantes:', this.enemiesRemaining);
                     if (this.enemiesRemaining <= 0) {
-                        // Pequeno delay antes de permitir vitória para feedback visual
-                        this.time.delayedCall(500, () => {
-                            // Verificar novamente se o jogador está no objetivo
-                            if (this.goal && this.physics.overlap(this.player, this.goal)) {
-                                this.winGame();
+                        console.log('Todos os inimigos derrotados! Agora precisa tocar no objetivo.');
+                        // Mostrar mensagem para o jogador
+                        if (this.goalMessage) {
+                            this.goalMessage.destroy();
+                        }
+                        this.goalMessage = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY - 100, 
+                            'TODOS OS INIMIGOS DERROTADOS!\nVÁ PARA O OBJETIVO VERDE!', {
+                            fontSize: '16px',
+                            fontFamily: 'Press Start 2P',
+                            fill: '#ffff00',
+                            stroke: '#000000',
+                            strokeThickness: 2,
+                            align: 'center'
+                        }).setOrigin(0.5).setScrollFactor(0);
+                        
+                        // Remover a mensagem após 3 segundos
+                        this.time.delayedCall(3000, () => {
+                            if (this.goalMessage) {
+                                this.goalMessage.destroy();
                             }
                         });
                     }
@@ -1468,6 +1496,8 @@ class GameScene extends Phaser.Scene {
     }
 
     winGame() {
+        console.log('=== VITÓRIA! ===');
+        console.log('winGame() foi chamado com sucesso!');
         this.gameWon = true;
         const elapsedTime = (Date.now() - this.startTime) / 1000;
         const timeBonus = Math.max(0, Math.floor((60 - elapsedTime) * 10));
