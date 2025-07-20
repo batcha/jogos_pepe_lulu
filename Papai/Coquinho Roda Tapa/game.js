@@ -1,3 +1,107 @@
+// === SISTEMA DE ANIMAÇÕES PARA SPRITES ===
+class AnimationManager {
+    static playerAnimations = {
+        idle: { frames: [0, 1, 2, 3], frameRate: 6, repeat: -1 },
+        walk: { frames: [4, 5, 6, 7], frameRate: 10, repeat: -1 },
+        run: { frames: [8, 9, 10, 11], frameRate: 14, repeat: -1 },
+        attack: { frames: [12, 13, 14, 15], frameRate: 12, repeat: 0, holdLastFrame: false },
+        jump: { frames: [16, 17, 18], frameRate: 8, repeat: 0, holdLastFrame: false },
+        hit: { frames: [19, 20, 21, 22], frameRate: 8, repeat: 0, holdLastFrame: true }
+    };
+    
+    static enemyAnimations = {
+        selfie_tourist: {
+            idle: { frames: [0, 1, 2, 3], frameRate: 5, repeat: -1 },
+            walk: { frames: [4, 5, 6, 7], frameRate: 8, repeat: -1 },
+            run: { frames: [8, 9, 10, 11], frameRate: 12, repeat: -1 },
+            attack: { frames: [12, 13, 14], frameRate: 10, repeat: 0, holdLastFrame: false },
+            hit: { frames: [15, 16, 17], frameRate: 6, repeat: 0, holdLastFrame: true }
+        },
+        child_float: {
+            idle: { frames: [0, 1, 2], frameRate: 4, repeat: -1 },
+            walk: { frames: [3, 4, 5, 6], frameRate: 9, repeat: -1 },
+            run: { frames: [7, 8, 9, 10], frameRate: 13, repeat: -1 },
+            attack: { frames: [11, 12, 13], frameRate: 8, repeat: 0, holdLastFrame: false },
+            hit: { frames: [14, 15, 16], frameRate: 6, repeat: 0, holdLastFrame: true }
+        },
+        sunscreen_guy: {
+            idle: { frames: [0, 1, 2, 3], frameRate: 3, repeat: -1 },
+            walk: { frames: [4, 5, 6, 7], frameRate: 7, repeat: -1 },
+            run: { frames: [8, 9, 10], frameRate: 10, repeat: -1 },
+            attack: { frames: [11, 12, 13, 14], frameRate: 9, repeat: 0, holdLastFrame: false },
+            hit: { frames: [15, 16, 17], frameRate: 6, repeat: 0, holdLastFrame: true }
+        }
+    };
+    
+    static registerPlayerAnimations(scene) {
+        const spritesheetKey = 'player_spritesheet';
+        
+        // Verificar se o spritesheet existe
+        if (!scene.textures.exists(spritesheetKey)) {
+            console.log('🎨 Player spritesheet não encontrado, usando visual atual');
+            return false;
+        }
+        
+        // Criar todas as animações do jogador
+        Object.entries(this.playerAnimations).forEach(([animName, config]) => {
+            const animKey = `player_${animName}`;
+            
+            scene.anims.create({
+                key: animKey,
+                frames: scene.anims.generateFrameNumbers(spritesheetKey, { 
+                    frames: config.frames 
+                }),
+                frameRate: config.frameRate,
+                repeat: config.repeat
+            });
+        });
+        
+        console.log('✅ Animações do jogador registradas');
+        return true;
+    }
+    
+    static registerEnemyAnimations(scene, enemyType) {
+        const spritesheetKey = `enemy_${enemyType}_spritesheet`;
+        
+        // Verificar se o spritesheet existe
+        if (!scene.textures.exists(spritesheetKey)) {
+            console.log(`🎨 ${enemyType} spritesheet não encontrado, usando visual atual`);
+            return false;
+        }
+        
+        const animations = this.enemyAnimations[enemyType];
+        if (!animations) {
+            console.log(`⚠️ Configurações de animação não encontradas para ${enemyType}`);
+            return false;
+        }
+        
+        // Criar todas as animações do inimigo
+        Object.entries(animations).forEach(([animName, config]) => {
+            const animKey = `${enemyType}_${animName}`;
+            
+            scene.anims.create({
+                key: animKey,
+                frames: scene.anims.generateFrameNumbers(spritesheetKey, { 
+                    frames: config.frames 
+                }),
+                frameRate: config.frameRate,
+                repeat: config.repeat
+            });
+        });
+        
+        console.log(`✅ Animações de ${enemyType} registradas`);
+        return true;
+    }
+    
+    static getAnimationConfig(type, animName) {
+        if (type === 'player') {
+            return this.playerAnimations[animName];
+        } else {
+            return this.enemyAnimations[type] ? this.enemyAnimations[type][animName] : null;
+        }
+    }
+}
+
 // === CONFIGURAÇÃO PRINCIPAL DO PHASER ===
 class GameConfig {
     static get() {
@@ -31,6 +135,117 @@ class GameConfig {
                 gamepad: true
             }
         };
+    }
+}
+
+// === CLASSE BASE PARA SPRITES ANIMADOS ===
+class AnimatedSprite extends Phaser.Physics.Arcade.Sprite {
+    constructor(scene, x, y, spriteKey, fallbackCreator, animationType) {
+        // Tentar usar spritesheet primeiro, senão usar fallback
+        if (scene.textures.exists(spriteKey)) {
+            super(scene, x, y, spriteKey, 0);
+            this.hasSprite = true;
+            this.animationType = animationType;
+        } else {
+            super(scene, x, y, null);
+            this.hasSprite = false;
+            this.createFallbackVisual = fallbackCreator;
+        }
+        
+        this.scene = scene;
+        scene.add.existing(this);
+        scene.physics.add.existing(this);
+        
+        // Estado de animação
+        this.currentAnimation = 'idle';
+        this.lastAnimation = '';
+        this.animationLocked = false;
+        this.lockTimer = 0;
+        
+        // Se não tem sprite, criar visual fallback
+        if (!this.hasSprite && this.createFallbackVisual) {
+            this.fallbackContainer = this.createFallbackVisual();
+        }
+    }
+    
+    playAnimation(animationName, force = false) {
+        // Se não tem sprite, usar visual atual
+        if (!this.hasSprite) {
+            this.currentAnimation = animationName;
+            this.updateFallbackVisual(animationName);
+            return;
+        }
+        
+        // Se animação está travada, não trocar
+        if (this.animationLocked && !force) {
+            return;
+        }
+        
+        // Não repetir a mesma animação
+        if (this.currentAnimation === animationName && !force) {
+            return;
+        }
+        
+        const animKey = `${this.animationType}_${animationName}`;
+        
+        // Verificar se a animação existe
+        if (!this.scene.anims.exists(animKey)) {
+            console.log(`⚠️ Animação ${animKey} não encontrada`);
+            return;
+        }
+        
+        // Parar animação atual
+        this.stop();
+        
+        // Começar nova animação
+        this.play(animKey);
+        this.lastAnimation = this.currentAnimation;
+        this.currentAnimation = animationName;
+        
+        // Verificar se deve manter último quadro
+        const config = AnimationManager.getAnimationConfig(this.animationType, animationName);
+        if (config && config.holdLastFrame) {
+            this.once('animationcomplete', () => {
+                this.lockAnimation(true);
+            });
+        }
+        
+        console.log(`🎬 ${this.animationType} tocando: ${animationName}`);
+    }
+    
+    lockAnimation(locked, duration = 0) {
+        this.animationLocked = locked;
+        if (duration > 0) {
+            this.lockTimer = duration;
+        }
+    }
+    
+    updateFallbackVisual(animationName) {
+        // Implementado nas classes filhas se necessário
+        // Por exemplo, mudar cor ou escala baseado na animação
+    }
+    
+    update() {
+        // Atualizar timer de lock
+        if (this.lockTimer > 0) {
+            this.lockTimer -= this.scene.sys.game.loop.delta;
+            if (this.lockTimer <= 0) {
+                this.animationLocked = false;
+            }
+        }
+        
+        // Atualizar posição do visual fallback se existir
+        if (this.fallbackContainer) {
+            this.fallbackContainer.setPosition(this.x, this.y);
+            this.fallbackContainer.setRotation(this.rotation);
+        }
+    }
+    
+    destroy() {
+        if (this.fallbackContainer) {
+            this.fallbackContainer.destroy();
+        }
+        super.destroy();
     }
 }
 
@@ -183,29 +398,29 @@ class InputManager {
 }
 
 // === CLASSE DO JOGADOR ===
-class Player extends Phaser.Physics.Arcade.Sprite {
+class Player extends AnimatedSprite {
     constructor(scene, x, y) {
-        super(scene, x, y, null);
+        super(scene, x, y, 'player');
         
-        this.scene = scene;
-        scene.add.existing(this);
-        scene.physics.add.existing(this);
-        
-        // Tornar o sprite físico invisível para evitar mostrar a hitbox
-        this.setVisible(false);
-        
-        // Propriedades do jogador
+        // Propriedades específicas do jogador
         this.setSize(32, 32);
         this.setBounce(0);
         this.setCollideWorldBounds(true);
         
-        // Estados
+        // Estados do jogador
         this.isAttacking = false;
         this.attackTimer = 0;
         this.attackDuration = 300; // ms
         this.isPoweredUp = false;
         this.powerUpTimer = 0;
         this.powerUpDuration = 5000; // ms
+        
+        // Estados de animação
+        this.isGrounded = false;
+        this.wasGrounded = false;
+        this.isRunning = false;
+        this.isMoving = false;
+        this.currentAnimationState = 'idle';
         
         // Área de ataque (invisível por padrão)
         this.attackArea = scene.add.circle(x, y, 0, 0xff0000, 0.2);
@@ -216,45 +431,66 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.lastAttackTime = 0;
         this.attackCooldown = 100; // ms
         
-        // Sprite visual do jogador (em vez de desenhar manualmente)
+        // Criar visual de fallback se sprites não estiverem disponíveis
         this.createPlayerVisual();
+        
+        console.log('Player created with animations:', this.animationManager.animationsReady.player);
     }
     
     createPlayerVisual() {
-        // Criar um container para a aparência do jogador
-        this.visualContainer = this.scene.add.container(this.x, this.y);
-        
-        // Corpo do coquinho
-        this.bodySprite = this.scene.add.rectangle(0, 0, 30, 30, 0x2ecc71);
-        this.bodySprite.setStrokeStyle(2, 0x27ae60, 1);
-        
-        // Olhos brancos
-        this.leftEye = this.scene.add.rectangle(-8, -8, 6, 6, 0xffffff);
-        this.rightEye = this.scene.add.rectangle(8, -8, 6, 6, 0xffffff);
-        
-        // Pupilas pretas
-        this.leftPupil = this.scene.add.rectangle(-8, -8, 3, 3, 0x000000);
-        this.rightPupil = this.scene.add.rectangle(8, -8, 3, 3, 0x000000);
-        
-        // Adicionar ao container na ordem correta
-        this.visualContainer.add([this.bodySprite, this.leftEye, this.rightEye, this.leftPupil, this.rightPupil]);
+        // Criar visual de fallback apenas se animations não estiverem disponíveis
+        if (!this.hasAnimations) {
+            // Criar um container para a aparência do jogador
+            this.visualContainer = this.scene.add.container(this.x, this.y);
+            
+            // Corpo do coquinho
+            this.bodySprite = this.scene.add.rectangle(0, 0, 30, 30, 0x2ecc71);
+            this.bodySprite.setStrokeStyle(2, 0x27ae60, 1);
+            
+            // Olhos brancos
+            this.leftEye = this.scene.add.rectangle(-8, -8, 6, 6, 0xffffff);
+            this.rightEye = this.scene.add.rectangle(8, -8, 6, 6, 0xffffff);
+            
+            // Pupilas pretas
+            this.leftPupil = this.scene.add.rectangle(-8, -8, 3, 3, 0x000000);
+            this.rightPupil = this.scene.add.rectangle(8, -8, 3, 3, 0x000000);
+            
+            // Adicionar ao container na ordem correta
+            this.visualContainer.add([this.bodySprite, this.leftEye, this.rightEye, this.leftPupil, this.rightPupil]);
+            
+            console.log('Player fallback visual created');
+        } else {
+            console.log('Player using spritesheet animations');
+        }
     }
 
     update(time, delta) {
         const input = this.scene.inputManager;
         
+        // Detectar estado de movimento e solo
+        this.wasGrounded = this.isGrounded;
+        this.isGrounded = this.body.touching.down;
+        
         // Movimento horizontal com suporte a analógico
         const movementStrength = input.getMovementStrength();
         const baseSpeed = 160;
         
+        this.isMoving = false;
+        
         if (input.isLeftPressed()) {
             this.setVelocityX(-baseSpeed * movementStrength);
             this.setFlipX(true);
+            this.isMoving = true;
+            this.isRunning = movementStrength > 0.8;
         } else if (input.isRightPressed()) {
             this.setVelocityX(baseSpeed * movementStrength);
             this.setFlipX(false);
+            this.isMoving = true;
+            this.isRunning = movementStrength > 0.8;
         } else {
             this.setVelocityX(0);
+            this.isMoving = false;
+            this.isRunning = false;
         }
         
         // Pulo
@@ -278,8 +514,8 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         // Atualizar posição visual
         this.updateVisualPosition();
         
-        // Atualizar animações
-        this.updateAnimations();
+        // Atualizar animações com base no estado
+        this.updatePlayerAnimations();
     }
 
     attack(time) {
@@ -288,6 +524,9 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.isAttacking = true;
         this.attackTimer = this.attackDuration;
         this.lastAttackTime = time;
+        
+        // Tocar animação de ataque se disponível
+        this.playAnimation('attacking');
         
         // Feedback de vibração para ataque
         this.scene.inputManager.vibrate(0.4, 0.6, 200);
@@ -302,13 +541,15 @@ class Player extends Phaser.Physics.Arcade.Sprite {
             this.scene.attackSound.play();
         }
         
-        // Animação de rotação
-        this.scene.tweens.add({
-            targets: this,
-            rotation: this.rotation + Math.PI * 4,
-            duration: this.attackDuration,
-            ease: 'Power2'
-        });
+        // Animação de rotação (fallback visual)
+        if (!this.hasAnimations) {
+            this.scene.tweens.add({
+                targets: this,
+                rotation: this.rotation + Math.PI * 4,
+                duration: this.attackDuration,
+                ease: 'Power2'
+            });
+        }
         
         // Ocultar área de ataque após o tempo
         this.scene.time.delayedCall(this.attackDuration, () => {
@@ -317,8 +558,42 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         });
     }
 
-    updateAnimations() {
-        // Animação baseada no movimento
+    updatePlayerAnimations() {
+        if (!this.hasAnimations) {
+            // Fallback: animações simples baseadas em escala
+            this.updateFallbackAnimations();
+            return;
+        }
+
+        let newState = 'idle';
+
+        // Determinar estado da animação baseado no movimento e ações
+        if (this.isAttacking) {
+            newState = 'attacking';
+        } else if (!this.isGrounded) {
+            if (this.body.velocity.y < -50) {
+                newState = 'jumping';
+            } else {
+                newState = 'jumping'; // Pode ser 'falling' se tiver sprite separado
+            }
+        } else if (this.isMoving) {
+            if (this.isRunning) {
+                newState = 'running';
+            } else {
+                newState = 'walking';
+            }
+        }
+
+        // Tocar animação apenas se mudou de estado
+        if (newState !== this.currentAnimationState) {
+            this.currentAnimationState = newState;
+            this.playAnimation(newState);
+            console.log(`Player animation state changed to: ${newState}`);
+        }
+    }
+
+    updateFallbackAnimations() {
+        // Animação baseada no movimento (sistema antigo)
         if (Math.abs(this.body.velocity.x) > 10) {
             // Animação de corrida (pode ser expandida com sprites)
             this.scaleX = 1 + Math.sin(Date.now() * 0.01) * 0.05;
@@ -341,9 +616,11 @@ class Player extends Phaser.Physics.Arcade.Sprite {
             this.powerUpTimer -= delta;
             if (this.powerUpTimer <= 0) {
                 this.isPoweredUp = false;
-                // Voltar cor normal e contorno
-                this.bodySprite.setFillStyle(0x2ecc71);
-                this.bodySprite.setStrokeStyle(2, 0x27ae60, 1);
+                // Voltar cor normal e contorno (apenas para fallback visual)
+                if (!this.hasAnimations && this.bodySprite) {
+                    this.bodySprite.setFillStyle(0x2ecc71);
+                    this.bodySprite.setStrokeStyle(2, 0x27ae60, 1);
+                }
             }
         }
     }
@@ -353,8 +630,8 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     }
     
     updateVisualPosition() {
-        // Sincronizar posição visual com física
-        if (this.visualContainer) {
+        // Sincronizar posição visual com física (apenas para fallback)
+        if (!this.hasAnimations && this.visualContainer) {
             this.visualContainer.setPosition(this.x, this.y);
             this.visualContainer.setRotation(this.rotation);
         }
@@ -363,9 +640,11 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     powerUp() {
         this.isPoweredUp = true;
         this.powerUpTimer = this.powerUpDuration;
-        // Mudar cor para dourado e manter o contorno
-        this.bodySprite.setFillStyle(0xf1c40f);
-        this.bodySprite.setStrokeStyle(2, 0xe67e22, 1); // Contorno laranja para destacar
+        // Mudar cor para dourado (apenas para fallback visual)
+        if (!this.hasAnimations && this.bodySprite) {
+            this.bodySprite.setFillStyle(0xf1c40f);
+            this.bodySprite.setStrokeStyle(2, 0xe67e22, 1); // Contorno laranja para destacar
+        }
     }
 
     destroy() {
@@ -475,17 +754,11 @@ class EnemyTypes {
 }
 
 // === CLASSE BASE DO INIMIGO (REFATORADA) ===
-class Enemy extends Phaser.Physics.Arcade.Sprite {
+class Enemy extends AnimatedSprite {
     constructor(scene, x, y, enemyType = 'selfie_tourist') {
-        super(scene, x, y, null);
+        super(scene, x, y, enemyType);
         
-        this.scene = scene;
-        scene.add.existing(this);
-        scene.physics.add.existing(this);
-        
-        // Tornar o sprite físico invisível para evitar mostrar a hitbox
-        this.setVisible(false);
-        
+        // Configurações específicas do inimigo
         this.setSize(32, 48);
         this.setBounce(0);
         this.setCollideWorldBounds(true);
@@ -507,42 +780,57 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.isPlayerVisible = false;
         this.attackCooldown = 0;
         
-        // Criar sprite visual do inimigo
+        // Estados de animação
+        this.currentAnimationState = 'idle';
+        this.isMoving = false;
+        this.isAttacking = false;
+        
+        // Criar visual de fallback se necessário
         this.createEnemyVisual();
         
         // Estado inicial
         this.changeState('idle');
+        
+        console.log(`Enemy ${enemyType} created with animations:`, 
+                   this.animationManager.animationsReady[enemyType]);
     }
     
     createEnemyVisual() {
-        // Container para a aparência do inimigo
-        this.visualContainer = this.scene.add.container(this.x, this.y);
-        
-        const colors = this.config.colors;
-        
-        // Corpo (camisa)
-        this.bodySprite = this.scene.add.rectangle(0, 0, 30, 45, colors.shirt);
-        this.bodySprite.setStrokeStyle(1, 0x000000, 1);
-        
-        // Roupa (calça/short)
-        this.clothesSprite = this.scene.add.rectangle(0, 8, 30, 20, colors.pants);
-        this.clothesSprite.setStrokeStyle(1, 0x000000, 1);
-        
-        // Cabeça
-        this.headSprite = this.scene.add.rectangle(0, -15, 25, 20, colors.head);
-        this.headSprite.setStrokeStyle(1, 0x000000, 1);
-        
-        // Elementos específicos do tipo
-        this.createTypeSpecificVisuals();
-        
-        // Adicionar ao container na ordem correta
-        this.visualContainer.add([this.bodySprite, this.clothesSprite, this.headSprite]);
-        
-        // Adicionar elementos específicos se existirem
-        if (this.typeSpecificElements) {
-            this.typeSpecificElements.forEach(element => {
-                this.visualContainer.add(element);
-            });
+        // Criar visual de fallback apenas se animations não estiverem disponíveis
+        if (!this.hasAnimations) {
+            // Container para a aparência do inimigo
+            this.visualContainer = this.scene.add.container(this.x, this.y);
+            
+            const colors = this.config.colors;
+            
+            // Corpo (camisa)
+            this.bodySprite = this.scene.add.rectangle(0, 0, 30, 45, colors.shirt);
+            this.bodySprite.setStrokeStyle(1, 0x000000, 1);
+            
+            // Roupa (calça/short)
+            this.clothesSprite = this.scene.add.rectangle(0, 8, 30, 20, colors.pants);
+            this.clothesSprite.setStrokeStyle(1, 0x000000, 1);
+            
+            // Cabeça
+            this.headSprite = this.scene.add.rectangle(0, -15, 25, 20, colors.head);
+            this.headSprite.setStrokeStyle(1, 0x000000, 1);
+            
+            // Elementos específicos do tipo
+            this.createTypeSpecificVisuals();
+            
+            // Adicionar ao container na ordem correta
+            this.visualContainer.add([this.bodySprite, this.clothesSprite, this.headSprite]);
+            
+            // Adicionar elementos específicos se existirem
+            if (this.typeSpecificElements) {
+                this.typeSpecificElements.forEach(element => {
+                    this.visualContainer.add(element);
+                });
+            }
+            
+            console.log(`Enemy ${this.enemyType} fallback visual created`);
+        } else {
+            console.log(`Enemy ${this.enemyType} using spritesheet animations`);
         }
     }
     
@@ -592,8 +880,8 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         // Atualizar posição visual
         this.updateVisualPosition();
         
-        // Atualizar animações específicas
-        this.updateTypeAnimations();
+        // Atualizar animações baseado no estado
+        this.updateEnemyAnimations();
     }
     
     detectPlayer() {
@@ -778,8 +1066,53 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.currentState = newState;
         this.stateTimer = 0;
         
+        // Tocar animação correspondente se disponível
+        if (this.hasAnimations) {
+            let animState = newState;
+            // Mapear estados para animações
+            if (newState === 'attack') {
+                animState = 'attacking';
+            } else if (newState === 'walk') {
+                animState = 'walking';
+            } else if (newState === 'run') {
+                animState = 'running';
+            } else if (newState === 'idle') {
+                animState = 'idle';
+            }
+            
+            if (animState !== this.currentAnimationState) {
+                this.currentAnimationState = animState;
+                this.playAnimation(animState);
+                console.log(`Enemy ${this.enemyType} animation changed to: ${animState}`);
+            }
+        }
+        
         // Debug
         // console.log(`${this.config.name} mudou para estado: ${newState}`);
+    }
+    
+    updateEnemyAnimations() {
+        if (!this.hasAnimations) {
+            // Usar sistema de animação fallback
+            this.updateTypeAnimations();
+            return;
+        }
+
+        // Sistema de animação com sprites já está sendo gerenciado pela AnimatedSprite
+        // Apenas garantir que o estado da animação está sincronizado
+        let expectedState = this.currentState;
+        if (this.currentState === 'attack') {
+            expectedState = 'attacking';
+        } else if (this.currentState === 'walk') {
+            expectedState = 'walking';
+        } else if (this.currentState === 'run') {
+            expectedState = 'running';
+        }
+
+        if (expectedState !== this.currentAnimationState) {
+            this.currentAnimationState = expectedState;
+            this.playAnimation(expectedState);
+        }
     }
     
     detectPlatformEdge() {
@@ -875,8 +1208,8 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
     
     updateVisualPosition() {
-        // Sincronizar posição visual com física
-        if (this.visualContainer) {
+        // Sincronizar posição visual com física (apenas para fallback)
+        if (!this.hasAnimations && this.visualContainer) {
             this.visualContainer.setPosition(this.x, this.y);
             this.visualContainer.setRotation(this.rotation);
         }
@@ -888,8 +1221,13 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.isHit = true;
         this.setVelocity(0);
         
-        // Efeitos visuais do nocaute
-        if (this.visualContainer) {
+        // Tocar animação de hit se disponível
+        if (this.hasAnimations) {
+            this.playAnimation('hit');
+        }
+        
+        // Efeitos visuais do nocaute (fallback)
+        if (!this.hasAnimations && this.visualContainer) {
             // Rotacionar para mostrar que foi nocauteado
             this.scene.tweens.add({
                 targets: this.visualContainer,
@@ -1484,12 +1822,56 @@ class GameScene extends Phaser.Scene {
         console.log('===========================');
     }
 
+    preload() {
+        // Tentar carregar spritesheets (se existirem)
+        // Para jogador
+        this.load.image('player_fallback', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
+        this.load.spritesheet('player_spritesheet', 'assets/sprites/player.png', { 
+            frameWidth: 48, 
+            frameHeight: 48 
+        }).on('filecomplete-spritesheet-player_spritesheet', () => {
+            console.log('✅ Player spritesheet carregado');
+        }).on('loaderror', () => {
+            console.log('⚠️ Player spritesheet não encontrado, usando visual atual');
+        });
+        
+        // Para inimigos
+        this.load.spritesheet('enemy_selfie_tourist_spritesheet', 'assets/sprites/enemy_selfie_tourist.png', { 
+            frameWidth: 48, 
+            frameHeight: 48 
+        }).on('loaderror', () => {
+            console.log('⚠️ Selfie Tourist spritesheet não encontrado');
+        });
+        
+        this.load.spritesheet('enemy_child_float_spritesheet', 'assets/sprites/enemy_child_float.png', { 
+            frameWidth: 48, 
+            frameHeight: 48 
+        }).on('loaderror', () => {
+            console.log('⚠️ Child Float spritesheet não encontrado');
+        });
+        
+        this.load.spritesheet('enemy_sunscreen_guy_spritesheet', 'assets/sprites/enemy_sunscreen_guy.png', { 
+            frameWidth: 48, 
+            frameHeight: 48 
+        }).on('loaderror', () => {
+            console.log('⚠️ Sunscreen Guy spritesheet não encontrado');
+        });
+    }
+
     create() {
         // Sistema de input
         this.inputManager = new InputManager(this);
         
         // Configurar gamepad manager
         this.gamepadManager = window.gamepadManager;
+        
+        // Registrar animações (se os spritesheets existirem)
+        this.hasPlayerAnimations = AnimationManager.registerPlayerAnimations(this);
+        this.enemyAnimationsAvailable = {
+            selfie_tourist: AnimationManager.registerEnemyAnimations(this, 'selfie_tourist'),
+            child_float: AnimationManager.registerEnemyAnimations(this, 'child_float'),
+            sunscreen_guy: AnimationManager.registerEnemyAnimations(this, 'sunscreen_guy')
+        };
         
         // Grupos de objetos
         this.platforms = this.physics.add.staticGroup();
