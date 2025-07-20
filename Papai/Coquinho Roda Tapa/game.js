@@ -26,7 +26,7 @@ class GameConfig {
                     debug: false // Garantir que debug está desabilitado
                 }
             },
-            scene: [MenuScene, GameScene],
+            scene: [MenuScene, GameScene, MapCompleteScene, GameCompleteScene],
             input: {
                 gamepad: true
             }
@@ -1066,8 +1066,394 @@ class MenuScene extends Phaser.Scene {
         
         // Pequeno delay para feedback visual
         this.time.delayedCall(100, () => {
-            this.scene.start('GameScene');
+            // Iniciar com o primeiro mapa
+            this.scene.start('GameScene', {
+                mapId: 1,
+                totalScore: 0,
+                gameProgress: {
+                    currentMap: 1,
+                    totalMaps: MapManager.getTotalMaps(),
+                    totalScore: 0,
+                    totalTime: 0,
+                    mapsCompleted: 0,
+                    mapStats: []
+                }
+            });
         });
+    }
+}
+
+// === SCENE DE MAPA COMPLETO ===
+class MapCompleteScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'MapCompleteScene' });
+    }
+
+    init(data) {
+        console.log('=== INICIALIZANDO MAPCOMPLETESCENE ===');
+        console.log('Dados recebidos:', data);
+        
+        // Dados passados da GameScene
+        this.mapScore = data.mapScore || 0;
+        this.timeBonus = data.timeBonus || 0;
+        this.gameProgress = data.gameProgress || {};
+        this.nextMapId = data.nextMapId || null;
+        this.currentMapData = data.currentMapData || {};
+        
+        console.log('Dados do mapa atual:', this.currentMapData);
+        console.log('===================================');
+    }
+
+    create() {
+        // Configurar gamepad manager
+        this.gamepadManager = window.gamepadManager;
+        
+        // Fundo com gradiente
+        this.cameras.main.setBackgroundColor('#1a1a2e');
+        
+        // Título principal
+        this.add.text(400, 80, 'MAPA CONCLUÍDO! 🎉', {
+            fontSize: '32px',
+            fontFamily: 'Press Start 2P',
+            fill: '#00ff00',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        
+        // Nome do mapa completado
+        this.add.text(400, 140, `"${this.currentMapData.name}"`, {
+            fontSize: '20px',
+            fontFamily: 'Press Start 2P',
+            fill: '#ffff00',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        
+        // Descrição do mapa
+        this.add.text(400, 170, this.currentMapData.description, {
+            fontSize: '14px',
+            fontFamily: 'Press Start 2P',
+            fill: '#74b9ff',
+            stroke: '#000000',
+            strokeThickness: 1
+        }).setOrigin(0.5);
+        
+        // Resumo da performance
+        const performanceY = 210;
+        const elapsedTime = this.gameProgress.mapStats.length > 0 ? 
+            this.gameProgress.mapStats[this.gameProgress.mapStats.length - 1].timeSpent : 0;
+        
+        const stats = [
+            `Pontuação do Mapa: ${this.mapScore - this.timeBonus}`,
+            `Tempo: ${elapsedTime.toFixed(2)}s`,
+            `Bônus de Tempo: ${this.timeBonus}`,
+            `Inimigos Derrotados: ${this.gameProgress.mapStats.length > 0 ? this.gameProgress.mapStats[this.gameProgress.mapStats.length - 1].enemiesDefeated : 0}`,
+            '',
+            `PONTUAÇÃO TOTAL: ${this.gameProgress.totalScore}`
+        ];
+        
+        stats.forEach((stat, index) => {
+            if (stat === '') return; // Pular linha vazia
+            
+            const color = stat.includes('TOTAL') ? '#ff6b6b' : '#ffffff';
+            const fontSize = stat.includes('TOTAL') ? '20px' : '16px';
+            
+            this.add.text(400, performanceY + (index * 30), stat, {
+                fontSize: fontSize,
+                fontFamily: 'Press Start 2P',
+                fill: color,
+                stroke: '#000000',
+                strokeThickness: 2
+            }).setOrigin(0.5);
+        });
+        
+        // Progresso do jogo
+        const progressY = 400;
+        const currentMapNumber = this.gameProgress.mapsCompleted;
+        const totalMaps = this.gameProgress.totalMaps;
+        
+        this.add.text(400, progressY, `Mapa ${currentMapNumber} de ${totalMaps} completado!`, {
+            fontSize: '14px',
+            fontFamily: 'Press Start 2P',
+            fill: '#74b9ff',
+            stroke: '#000000',
+            strokeThickness: 1
+        }).setOrigin(0.5);
+        
+        // Barra de progresso visual
+        const barWidth = 300;
+        const barHeight = 20;
+        const barX = 400 - barWidth/2;
+        const barY = progressY + 30;
+        
+        // Fundo da barra
+        this.add.rectangle(barX + barWidth/2, barY + barHeight/2, barWidth, barHeight, 0x2d3436)
+            .setStrokeStyle(2, 0xddd, 1);
+        
+        // Progresso preenchido
+        const progress = currentMapNumber / totalMaps;
+        const fillWidth = barWidth * progress;
+        this.add.rectangle(barX + fillWidth/2, barY + barHeight/2, fillWidth, barHeight, 0x00b894);
+        
+        // Instrução para continuar
+        const isLastMap = this.nextMapId === null;
+        const instruction = isLastMap ? 
+            'Pressione qualquer botão para ver o resultado final!' :
+            'Pressione qualquer botão para o próximo mapa!';
+            
+        this.continueText = this.add.text(400, 450, instruction, {
+            fontSize: '14px',
+            fontFamily: 'Press Start 2P',
+            fill: '#ffeaa7',
+            stroke: '#000000',
+            strokeThickness: 1
+        }).setOrigin(0.5);
+        
+        // Animação piscante
+        this.tweens.add({
+            targets: this.continueText,
+            alpha: 0.3,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1
+        });
+        
+        // Configurar inputs
+        this.setupInputs();
+    }
+    
+    setupInputs() {
+        // Teclado
+        this.input.keyboard.on('keydown', () => {
+            this.proceedToNext();
+        });
+        
+        // Mouse/Touch
+        this.input.on('pointerdown', () => {
+            this.proceedToNext();
+        });
+        
+        // Gamepad
+        if (this.gamepadManager) {
+            this.gamepadConnected = false;
+        }
+    }
+    
+    update() {
+        // Verificar gamepad
+        if (this.gamepadManager) {
+            this.gamepadManager.update();
+            
+            // Detectar qualquer botão pressionado
+            if (this.gamepadManager.hasAnyGamepad()) {
+                if (!this.gamepadConnected) {
+                    this.gamepadConnected = true;
+                }
+                
+                // Verificar se qualquer botão foi pressionado
+                const gamepads = this.gamepadManager.getConnectedGamepads();
+                for (const gamepad of gamepads) {
+                    if (this.gamepadManager.isButtonJustPressed('attack') ||
+                        this.gamepadManager.isButtonJustPressed('menu') ||
+                        this.gamepadManager.isButtonJustPressed('jump')) {
+                        this.proceedToNext();
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    proceedToNext() {
+        const isLastMap = this.nextMapId === null;
+        
+        if (isLastMap) {
+            // Ir para tela de fim de jogo
+            this.scene.start('GameCompleteScene', {
+                gameProgress: this.gameProgress
+            });
+        } else {
+            // Ir para o próximo mapa
+            this.scene.start('GameScene', {
+                mapId: this.nextMapId,
+                totalScore: this.gameProgress.totalScore,
+                gameProgress: {
+                    ...this.gameProgress,
+                    currentMap: this.nextMapId
+                }
+            });
+        }
+    }
+}
+
+// === SCENE DE JOGO COMPLETO ===
+class GameCompleteScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'GameCompleteScene' });
+    }
+
+    init(data) {
+        this.gameProgress = data.gameProgress || {};
+    }
+
+    create() {
+        // Configurar gamepad manager
+        this.gamepadManager = window.gamepadManager;
+        
+        // Fundo especial para fim de jogo
+        this.cameras.main.setBackgroundColor('#0d1421');
+        
+        // Efeito de partículas comemorativas
+        this.createCelebrationEffects();
+        
+        // Título de parabéns
+        this.add.text(400, 60, '🏆 PARABÉNS! 🏆', {
+            fontSize: '36px',
+            fontFamily: 'Press Start 2P',
+            fill: '#ffd700',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+        
+        this.add.text(400, 120, 'VOCÊ COMPLETOU TODOS OS MAPAS!', {
+            fontSize: '16px',
+            fontFamily: 'Press Start 2P',
+            fill: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        
+        // Estatísticas finais
+        const finalStats = [
+            `Pontuação Final: ${this.gameProgress.totalScore}`,
+            `Mapas Completados: ${this.gameProgress.totalMaps}`,
+            `Tempo Total: ${this.gameProgress.totalTime}s`,
+            '',
+            this.getRankMessage(this.gameProgress.totalScore)
+        ];
+        
+        finalStats.forEach((stat, index) => {
+            if (stat === '') return;
+            
+            const isRank = stat.includes('Rank') || stat.includes('Mestre') || stat.includes('Campeão');
+            const color = isRank ? '#ff6b6b' : '#ffffff';
+            const fontSize = isRank ? '18px' : '16px';
+            
+            this.add.text(400, 180 + (index * 30), stat, {
+                fontSize: fontSize,
+                fontFamily: 'Press Start 2P',
+                fill: color,
+                stroke: '#000000',
+                strokeThickness: 2
+            }).setOrigin(0.5);
+        });
+        
+        // Botões de ação
+        this.createActionButtons();
+    }
+    
+    createCelebrationEffects() {
+        // Partículas de comemoração
+        const emitter = this.add.particles(400, 200, 'white', {
+            scale: { start: 0.5, end: 0 },
+            alpha: { start: 1, end: 0 },
+            speed: { min: 100, max: 200 },
+            lifespan: 1000,
+            frequency: 100,
+            emitZone: { 
+                type: 'edge', 
+                source: new Phaser.Geom.Rectangle(-50, -50, 100, 100),
+                quantity: 5
+            }
+        });
+        
+        // Estrelas girando
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const radius = 150;
+            const x = 400 + Math.cos(angle) * radius;
+            const y = 150 + Math.sin(angle) * radius;
+            
+            const star = this.add.text(x, y, '⭐', {
+                fontSize: '24px'
+            }).setOrigin(0.5);
+            
+            this.tweens.add({
+                targets: star,
+                rotation: Math.PI * 2,
+                duration: 3000,
+                repeat: -1,
+                ease: 'Linear'
+            });
+        }
+    }
+    
+    getRankMessage(score) {
+        if (score >= 5000) return '🏅 Rank: MESTRE DO COQUINHO!';
+        if (score >= 3000) return '🥇 Rank: CAMPEÃO DA PRAIA!';
+        if (score >= 2000) return '🥈 Rank: GUERREIRO COQUINHO!';
+        if (score >= 1000) return '🥉 Rank: DEFENSOR DA PRAIA!';
+        return '🎖️ Rank: NOVATO CORAJOSO!';
+    }
+    
+    createActionButtons() {
+        // Botão Jogar Novamente
+        this.playAgainBtn = this.add.text(400, 380, 'JOGAR NOVAMENTE', {
+            fontSize: '18px',
+            fontFamily: 'Press Start 2P',
+            fill: '#00ff00',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        
+        this.playAgainBtn.setInteractive();
+        this.playAgainBtn.on('pointerdown', () => {
+            this.restartGame();
+        });
+        
+        this.playAgainBtn.on('pointerover', () => {
+            this.playAgainBtn.setFill('#ffff00');
+        });
+        this.playAgainBtn.on('pointerout', () => {
+            this.playAgainBtn.setFill('#00ff00');
+        });
+        
+        // Instruções
+        this.add.text(400, 440, 'Pressione ENTER/START para jogar novamente', {
+            fontSize: '12px',
+            fontFamily: 'Press Start 2P',
+            fill: '#74b9ff',
+            stroke: '#000000',
+            strokeThickness: 1
+        }).setOrigin(0.5);
+        
+        // Configurar inputs
+        this.input.keyboard.on('keydown-ENTER', () => {
+            this.restartGame();
+        });
+    }
+    
+    update() {
+        // Verificar gamepad
+        if (this.gamepadManager) {
+            this.gamepadManager.update();
+            
+            if (this.gamepadManager.hasAnyGamepad()) {
+                if (this.gamepadManager.isButtonJustPressed('menu')) {
+                    this.restartGame();
+                }
+            }
+        }
+    }
+    
+    restartGame() {
+        // Vibração de feedback
+        if (this.gamepadManager) {
+            this.gamepadManager.vibrateAll(0.3, 0.5, 200);
+        }
+        
+        // Voltar ao menu principal
+        this.scene.start('MenuScene');
     }
 }
 
@@ -1077,22 +1463,49 @@ class GameScene extends Phaser.Scene {
         super({ key: 'GameScene' });
     }
 
+    init(data) {
+        console.log('=== INICIALIZANDO GAMESCENE ===');
+        console.log('Dados recebidos:', data);
+        
+        // Dados do sistema de progressão
+        this.currentMapId = data.mapId || 1;
+        this.totalScore = data.totalScore || 0;
+        this.gameProgress = data.gameProgress || {
+            currentMap: 1,
+            totalMaps: MapManager.getTotalMaps(),
+            totalScore: 0,
+            totalTime: 0,
+            mapsCompleted: 0,
+            mapStats: []
+        };
+        
+        console.log(`Mapa atual: ${this.currentMapId}`);
+        console.log(`Progresso:`, this.gameProgress);
+        console.log('===========================');
+    }
+
     create() {
         // Sistema de input
         this.inputManager = new InputManager(this);
+        
+        // Configurar gamepad manager
+        this.gamepadManager = window.gamepadManager;
         
         // Grupos de objetos
         this.platforms = this.physics.add.staticGroup();
         this.enemies = this.physics.add.group();
         this.powerups = this.physics.add.group();
         
-        // Variáveis do jogo (inicializar antes de criar o nível)
-        this.score = 0;
+        // Variáveis do jogo
+        this.score = 0; // Pontuação do mapa atual
         this.enemiesRemaining = 0;
         this.startTime = Date.now();
         this.gameWon = false;
         
-        // Criar nível (vai populr enemiesRemaining)
+        // Obter dados do mapa atual
+        this.currentMapData = MapManager.getCurrentMap(this.currentMapId);
+        
+        // Criar nível baseado no mapa atual
         this.createLevel();
         
         // Configurar câmera para seguir o jogador
@@ -1136,37 +1549,9 @@ class GameScene extends Phaser.Scene {
     }
 
     createLevel() {
-        // EXEMPLO DE MAPA MAIOR COM MÚLTIPLOS TIPOS DE INIMIGOS
-        // Legenda de personagens:
-        // T = Turista Selfie (selfie_tourist)
-        // K = Criança de Boia (child_float) 
-        // B = Tiozão Bronzeador (sunscreen_guy)
-        // P = Jogador (Player)
-        // C = Caju (Powerup)
-        // G = Goal (Objetivo)
-        // # = Plataforma
-        // . = Espaço vazio
+        // Usar dados do mapa atual
+        const levelData = this.currentMapData.data;
         
-        const levelData = [
-            '..........................................',
-            '..........................................',
-            '..........................................',
-            '..........................................',
-            '..........................................',
-            '..........................................',
-            '..........................................',
-            '..........................................',
-            '..........................................',
-            '..........................................',
-            '..........................................',
-            '..........................................',
-            '..........................B.......###.....',
-            '............K.....K...#####...............',
-            'P........####...###...........##..........',
-            '####...T...C.................###.........G',
-            '##########################################'  // 16,
-        ];
-
         // Armazenar dimensões do nível para configurar a câmera
         this.levelHeight = levelData.length;
         this.levelWidth = levelData[0].length;
@@ -1285,6 +1670,7 @@ class GameScene extends Phaser.Scene {
         
         // Log das estatísticas do mapa criado
         console.log('=== ESTATÍSTICAS DO MAPA ===');
+        console.log(`🗺️ Mapa: ${this.currentMapData.name} (${this.currentMapData.difficulty})`);
         console.log(`📏 Dimensões: ${this.levelWidth}x${this.levelHeight} tiles (${this.levelWidth * this.tileSize}x${this.levelHeight * this.tileSize} pixels)`);
         console.log('👥 Inimigos encontrados:');
         console.log(`   📱 Turistas Selfie: ${this.enemyCount.selfie_tourist}`);
@@ -1417,16 +1803,24 @@ class GameScene extends Phaser.Scene {
         
         // Jogador com objetivo - usar overlap para sensor
         if (this.goal) {
+            console.log('🎯 Configurando colisão com objetivo...');
             this.physics.add.overlap(this.player, this.goal, () => {
                 console.log('🎯 Jogador tocou no objetivo!');
                 console.log('📊 Inimigos restantes:', this.enemiesRemaining);
                 this.checkWinCondition();
             });
+        } else {
+            console.log('⚠️ ATENÇÃO: Objetivo não encontrado! O mapa pode não ter um objetivo definido.');
         }
     }
     
     // Nova função para verificar condição de vitória
     checkWinCondition() {
+        console.log('=== VERIFICAÇÃO DE VITÓRIA ===');
+        console.log(`Inimigos restantes: ${this.enemiesRemaining}`);
+        console.log(`Jogo já ganho: ${this.gameWon}`);
+        console.log(`Objetivo existe: ${this.goal ? 'SIM' : 'NÃO'}`);
+        
         if (this.enemiesRemaining <= 0 && !this.gameWon) {
             console.log('✅ Condições de vitória atendidas - chamando winGame()');
             this.winGame();
@@ -1467,6 +1861,7 @@ class GameScene extends Phaser.Scene {
                 );
                 
                 if (distance <= attackRadius) {
+                    console.log(`⚡ Atacando inimigo! Distância: ${distance.toFixed(2)}`);
                     enemy.hit();
                     this.score += 100;
                     this.enemiesRemaining = Math.max(0, this.enemiesRemaining - 1);
@@ -1476,6 +1871,7 @@ class GameScene extends Phaser.Scene {
                     this.inputManager.vibrate(0.5, 0.7, 100);
                     
                     // Verificar se todos os inimigos foram nocauteados
+                    console.log(`💥 Inimigo derrotado! Inimigos restantes: ${this.enemiesRemaining}`);
                     console.log('Inimigo derrotado! Inimigos restantes:', this.enemiesRemaining);
                     if (this.enemiesRemaining <= 0) {
                         console.log('Todos os inimigos derrotados! Agora precisa tocar no objetivo.');
@@ -1549,43 +1945,77 @@ class GameScene extends Phaser.Scene {
     }
 
     winGame() {
-        console.log('=== VITÓRIA! ===');
-        console.log('winGame() foi chamado com sucesso!');
+        console.log('🎉 JOGADOR VENCEU O MAPA! 🎉');
+        
         this.gameWon = true;
-        const elapsedTime = (Date.now() - this.startTime) / 1000;
-        const timeBonus = Math.max(0, Math.floor((60 - elapsedTime) * 10));
-        const finalScore = this.score + timeBonus;
         
-        // Mostrar tela de vitória (fixa na tela, não segue câmera)
-        const winText = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY - 50, 'VOCÊ VENCEU!', {
-            fontSize: '32px',
-            fontFamily: 'Press Start 2P',
-            fill: '#ffff00',
-            stroke: '#000000',
-            strokeThickness: 2
-        }).setOrigin(0.5).setScrollFactor(0);
+        // Parar toda a música e efeitos sonoros
+        // this.stopAllSounds(); // TODO: Implementar sistema de som
         
-        const scoreText = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, `Pontuação Final: ${finalScore}`, {
-            fontSize: '20px',
-            fontFamily: 'Press Start 2P',
-            fill: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 2
-        }).setOrigin(0.5).setScrollFactor(0);
-        
-        // Botão de reiniciar
-        const restartBtn = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY + 60, 'JOGAR NOVAMENTE', {
-            fontSize: '16px',
-            fontFamily: 'Press Start 2P',
-            fill: '#00ff00',
-            stroke: '#000000',
-            strokeThickness: 2
-        }).setOrigin(0.5).setScrollFactor(0);
-        
-        restartBtn.setInteractive();
-        restartBtn.on('pointerdown', () => {
-            this.scene.restart();
+        // Parar todas as animações de inimigos
+        this.enemies.children.entries.forEach(enemy => {
+            if (enemy.body) {
+                enemy.body.setVelocity(0, 0);
+            }
+            if (enemy.tween) {
+                enemy.tween.stop();
+            }
         });
+        
+        // Calcular pontuação do mapa atual
+        const elapsedTime = (Date.now() - this.startTime) / 1000;
+        const timeBonus = Math.max(0, 180 - elapsedTime) * 10; // Bônus de tempo
+        const mapScore = this.score + timeBonus;
+        
+        // Parar o timer (se existir)
+        if (this.gameTimerEvent) {
+            this.gameTimerEvent.destroy();
+        }
+        
+        // Atualizar dados de progresso
+        this.gameProgress.totalScore += mapScore;
+        this.gameProgress.mapsCompleted++;
+        this.gameProgress.totalTime += elapsedTime;
+        
+        // Adicionar estatísticas do mapa
+        if (!this.gameProgress.mapStats) {
+            this.gameProgress.mapStats = [];
+        }
+        
+        this.gameProgress.mapStats.push({
+            mapId: this.currentMapId,
+            mapName: this.currentMapData.name,
+            score: this.score,
+            timeBonus: timeBonus,
+            totalScore: mapScore,
+            timeSpent: elapsedTime,
+            enemiesDefeated: this.enemyCount.total
+        });
+        
+        console.log(`Mapa "${this.currentMapData.name}" completado!`);
+        console.log(`Pontuação do mapa: ${mapScore} (Base: ${this.score} + Bônus tempo: ${timeBonus})`);
+        console.log(`Pontuação total acumulada: ${this.gameProgress.totalScore}`);
+        
+        // Verificar se há próximo mapa
+        const nextMapId = MapManager.getNextMapId(this.currentMapId);
+        
+        if (nextMapId) {
+            console.log(`Próximo mapa: ${nextMapId}`);
+            // Transição para tela de resumo do mapa
+            this.scene.start('MapCompleteScene', {
+                mapScore: mapScore,
+                timeBonus: timeBonus,
+                gameProgress: this.gameProgress,
+                nextMapId: nextMapId,
+                currentMapData: this.currentMapData
+            });
+        } else {
+            console.log('🏆 TODOS OS MAPAS COMPLETADOS! 🏆');
+            // Transição para tela de vitória final
+            this.scene.start('GameCompleteScene', {
+                gameProgress: this.gameProgress
+            });
+        }
     }
 }
 
