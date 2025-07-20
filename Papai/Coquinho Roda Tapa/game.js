@@ -944,9 +944,13 @@ class Enemy extends Phaser.Physics.Arcade.Sprite {
 class MenuScene extends Phaser.Scene {
     constructor() {
         super({ key: 'MenuScene' });
+        this.gamepadManager = null;
     }
 
     create() {
+        // Configurar gamepad manager
+        this.gamepadManager = window.gamepadManager;
+        
         // Título
         this.add.text(400, 100, 'Coquinho Roda Tapa', {
             fontSize: '32px',
@@ -958,9 +962,13 @@ class MenuScene extends Phaser.Scene {
 
         // Instruções
         const isMobile = this.sys.game.device.input.touch;
-        const instructions = isMobile 
-            ? 'Toque nos botões na tela para jogar'
-            : 'Use as setas para mover\nX ou Espaço para atacar\nGamepad suportado!';
+        let instructions = '';
+        
+        if (isMobile) {
+            instructions = 'Toque nos botões na tela para jogar\nToque em INICIAR JOGO para começar';
+        } else {
+            instructions = 'Use as setas para mover\nX ou Espaço para atacar\nGamepad suportado!\n\nPressione ENTER ou START para iniciar';
+        }
             
         this.add.text(400, 200, instructions, {
             fontSize: '16px',
@@ -970,7 +978,7 @@ class MenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Botão de iniciar
-        const startButton = this.add.text(400, 300, 'INICIAR JOGO', {
+        this.startButton = this.add.text(400, 320, 'INICIAR JOGO', {
             fontSize: '24px',
             fontFamily: 'Press Start 2P',
             fill: '#00ff00',
@@ -978,17 +986,87 @@ class MenuScene extends Phaser.Scene {
             strokeThickness: 2
         }).setOrigin(0.5);
 
-        startButton.setInteractive();
-        startButton.on('pointerdown', () => {
-            this.scene.start('GameScene');
+        this.startButton.setInteractive();
+        this.startButton.on('pointerdown', () => {
+            this.startGame();
         });
 
         // Efeito hover
-        startButton.on('pointerover', () => {
-            startButton.setFill('#ffff00');
+        this.startButton.on('pointerover', () => {
+            this.startButton.setFill('#ffff00');
         });
-        startButton.on('pointerout', () => {
-            startButton.setFill('#00ff00');
+        this.startButton.on('pointerout', () => {
+            this.startButton.setFill('#00ff00');
+        });
+        
+        // Configurar input do teclado
+        this.keys = this.input.keyboard.addKeys('ENTER');
+        
+        // Indicador de gamepad (se conectado)
+        this.createGamepadIndicator();
+    }
+    
+    createGamepadIndicator() {
+        if (this.gamepadManager && this.gamepadManager.hasAnyGamepad()) {
+            const connectedGamepads = this.gamepadManager.getConnectedGamepads();
+            const gamepadInfo = connectedGamepads[0];
+            
+            this.gamepadText = this.add.text(400, 400, `🎮 ${gamepadInfo.id.substring(0, 25)}... conectado!\nPressione START para iniciar`, {
+                fontSize: '12px',
+                fontFamily: 'Arial',
+                fill: '#00ff00',
+                align: 'center'
+            }).setOrigin(0.5);
+            
+            // Animação piscante para chamar atenção
+            this.tweens.add({
+                targets: this.gamepadText,
+                alpha: 0.3,
+                duration: 1000,
+                yoyo: true,
+                repeat: -1
+            });
+        }
+    }
+
+    update() {
+        // Verificar input do teclado
+        if (Phaser.Input.Keyboard.JustDown(this.keys.ENTER)) {
+            this.startGame();
+        }
+        
+        // Verificar input do gamepad
+        if (this.gamepadManager) {
+            // Atualizar gamepad
+            this.gamepadManager.update();
+            
+            // Verificar botão Start/Menu
+            if (this.gamepadManager.isButtonJustPressed('menu')) {
+                this.startGame();
+            }
+            
+            // Verificar se um gamepad foi conectado durante o menu
+            if (!this.gamepadText && this.gamepadManager.hasAnyGamepad()) {
+                this.createGamepadIndicator();
+            }
+        }
+    }
+    
+    startGame() {
+        // Efeito de feedback
+        this.startButton.setFill('#ffff00');
+        
+        // Vibração se gamepad disponível
+        if (this.gamepadManager) {
+            this.gamepadManager.vibrateAll(0.3, 0.5, 200);
+        }
+        
+        // Som (se disponível)
+        // this.sound.play('startSound');
+        
+        // Pequeno delay para feedback visual
+        this.time.delayedCall(100, () => {
+            this.scene.start('GameScene');
         });
     }
 }
@@ -1008,23 +1086,23 @@ class GameScene extends Phaser.Scene {
         this.enemies = this.physics.add.group();
         this.powerups = this.physics.add.group();
         
-        // Criar nível
+        // Variáveis do jogo (inicializar antes de criar o nível)
+        this.score = 0;
+        this.enemiesRemaining = 0;
+        this.startTime = Date.now();
+        this.gameWon = false;
+        
+        // Criar nível (vai populr enemiesRemaining)
         this.createLevel();
         
         // Configurar câmera para seguir o jogador
         this.setupCamera();
         
-        // UI
+        // UI (criar depois do nível para ter o valor correto)
         this.createUI();
         
         // Configurar colisões
         this.setupCollisions();
-        
-        // Variáveis do jogo
-        this.score = 0;
-        this.touristsRemaining = 0;
-        this.startTime = Date.now();
-        this.gameWon = false;
         
         // Controles touch para mobile
         this.setupTouchControls();
@@ -1097,6 +1175,14 @@ class GameScene extends Phaser.Scene {
         this.levelWidth = levelData[0].length;
         this.tileSize = 40;
         
+        // Contador detalhado de inimigos
+        this.enemyCount = {
+            selfie_tourist: 0,
+            child_float: 0,
+            sunscreen_guy: 0,
+            total: 0
+        };
+        
         for (let row = 0; row < levelData.length; row++) {
             for (let col = 0; col < levelData[row].length; col++) {
                 const char = levelData[row][col];
@@ -1115,17 +1201,23 @@ class GameScene extends Phaser.Scene {
                     case 'T':
                         const touristSelfie = new Enemy(this, x, y, 'selfie_tourist');
                         this.enemies.add(touristSelfie);
-                        this.touristsRemaining++;
+                        this.enemiesRemaining++;
+                        this.enemyCount.selfie_tourist++;
+                        this.enemyCount.total++;
                         break;
                     case 'K':
                         const childFloat = new Enemy(this, x, y, 'child_float');
                         this.enemies.add(childFloat);
-                        this.touristsRemaining++;
+                        this.enemiesRemaining++;
+                        this.enemyCount.child_float++;
+                        this.enemyCount.total++;
                         break;
                     case 'B':
                         const sunscreenGuy = new Enemy(this, x, y, 'sunscreen_guy');
                         this.enemies.add(sunscreenGuy);
-                        this.touristsRemaining++;
+                        this.enemiesRemaining++;
+                        this.enemyCount.sunscreen_guy++;
+                        this.enemyCount.total++;
                         break;
                     case 'C':
                         // Criar o caju com visual aprimorado
@@ -1176,6 +1268,16 @@ class GameScene extends Phaser.Scene {
                 }
             }
         }
+        
+        // Log das estatísticas do mapa criado
+        console.log('=== ESTATÍSTICAS DO MAPA ===');
+        console.log(`📏 Dimensões: ${this.levelWidth}x${this.levelHeight} tiles (${this.levelWidth * this.tileSize}x${this.levelHeight * this.tileSize} pixels)`);
+        console.log('👥 Inimigos encontrados:');
+        console.log(`   📱 Turistas Selfie: ${this.enemyCount.selfie_tourist}`);
+        console.log(`   🏊 Crianças de Boia: ${this.enemyCount.child_float}`);
+        console.log(`   🌞 Tiozões Bronzeador: ${this.enemyCount.sunscreen_guy}`);
+        console.log(`   🎯 Total de Inimigos: ${this.enemyCount.total}`);
+        console.log('========================');
     }
 
     createUI() {
@@ -1196,7 +1298,7 @@ class GameScene extends Phaser.Scene {
             padding: { x: 8, y: 4 }
         }).setScrollFactor(0); // Importante: não segue a câmera
         
-        this.touristText = this.add.text(20, 80, `Turistas restantes: ${this.touristsRemaining}`, {
+        this.touristText = this.add.text(20, 80, `Inimigos restantes: ${this.enemiesRemaining}`, {
             fontSize: '16px',
             fontFamily: 'Arial',
             fill: '#ffffff',
@@ -1204,7 +1306,7 @@ class GameScene extends Phaser.Scene {
             padding: { x: 8, y: 4 }
         }).setScrollFactor(0); // Importante: não segue a câmera
         
-        // Indicador de posição do jogador (opcional)
+        // Indicador de posição do jogador e detalhes do mapa
         this.positionText = this.add.text(20, 110, 'Posição: 0, 0', {
             fontSize: '14px',
             fontFamily: 'Arial',
@@ -1212,6 +1314,16 @@ class GameScene extends Phaser.Scene {
             backgroundColor: '#000000',
             padding: { x: 6, y: 3 }
         }).setScrollFactor(0);
+        
+        // Contador detalhado de inimigos (canto superior direito)
+        this.enemyDetailsText = this.add.text(this.cameras.main.width - 20, 20, 
+            `📱${this.enemyCount.selfie_tourist} 🏊${this.enemyCount.child_float} 🌞${this.enemyCount.sunscreen_guy}`, {
+            fontSize: '14px',
+            fontFamily: 'Arial',
+            fill: '#ffffff',
+            backgroundColor: '#000000',
+            padding: { x: 6, y: 3 }
+        }).setOrigin(1, 0).setScrollFactor(0);
     }
 
     setupTouchControls() {
@@ -1285,7 +1397,7 @@ class GameScene extends Phaser.Scene {
         // Jogador com objetivo
         if (this.goal) {
             this.physics.add.overlap(this.player, this.goal, () => {
-                if (this.touristsRemaining <= 0 && !this.gameWon) {
+                if (this.enemiesRemaining <= 0 && !this.gameWon) {
                     this.winGame();
                 }
             });
@@ -1305,14 +1417,14 @@ class GameScene extends Phaser.Scene {
                 if (distance <= attackRadius) {
                     enemy.hit();
                     this.score += 100;
-                    this.touristsRemaining = Math.max(0, this.touristsRemaining - 1);
+                    this.enemiesRemaining = Math.max(0, this.enemiesRemaining - 1);
                     this.updateUI();
                     
                     // Feedback de vibração para hit
                     this.inputManager.vibrate(0.5, 0.7, 100);
                     
-                    // Verificar se todos os turistas foram nocauteados
-                    if (this.touristsRemaining <= 0) {
+                    // Verificar se todos os inimigos foram nocauteados
+                    if (this.enemiesRemaining <= 0) {
                         // Pequeno delay antes de permitir vitória para feedback visual
                         this.time.delayedCall(500, () => {
                             // Verificar novamente se o jogador está no objetivo
@@ -1351,8 +1463,8 @@ class GameScene extends Phaser.Scene {
     updateUI() {
         this.scoreText.setText(`Pontos: ${this.score}`);
         // Garantir que não mostre valores negativos
-        const remainingTourists = Math.max(0, this.touristsRemaining);
-        this.touristText.setText(`Turistas restantes: ${remainingTourists}`);
+        const remainingEnemies = Math.max(0, this.enemiesRemaining);
+        this.touristText.setText(`Inimigos restantes: ${remainingEnemies}`);
     }
 
     winGame() {
