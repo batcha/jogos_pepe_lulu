@@ -51,6 +51,52 @@
             text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
         }
 
+        .filter-container {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(45deg, #ff6b6b, #ffd93d);
+            border-color: #ff6b6b;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .filter-btn.filter-pepe.active {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+        }
+
+        .filter-btn.filter-lulu.active {
+            background: linear-gradient(45deg, #ff9a9e, #fecfef);
+        }
+
+        .filter-btn.filter-papai.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+        }
+
         .games-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -69,6 +115,10 @@
             transition: all 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .game-card.hidden {
+            display: none;
         }
 
         .game-card:hover {
@@ -110,6 +160,24 @@
             opacity: 0.9;
             line-height: 1.5;
         }
+
+        .game-tag {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .tag-pepe { background: linear-gradient(45deg, #ff6b6b, #ff8e53); }
+        .tag-lulu { background: linear-gradient(45deg, #ff9a9e, #fecfef); }
+        .tag-papai { background: linear-gradient(45deg, #667eea, #764ba2); }
 
         .play-button {
             display: inline-block;
@@ -179,6 +247,15 @@
             .game-card {
                 padding: 1.5rem;
             }
+
+            .filter-container {
+                gap: 0.5rem;
+            }
+
+            .filter-btn {
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
@@ -190,8 +267,16 @@
         <p class="subtitle">Aventuras Incríveis Te Esperam!</p>
     </header>
 
+    <div class="filter-container">
+        <button class="filter-btn active" data-filter="all">Todos os Jogos</button>
+        <button class="filter-btn filter-pepe" data-filter="pepe">Jogos do Pepe</button>
+        <button class="filter-btn filter-lulu" data-filter="lulu">Jogos da Lulu</button>
+        <button class="filter-btn filter-papai" data-filter="papai">Jogos do Papai</button>
+    </div>
+
     <main class="games-container">
-        <div class="game-card">
+        <div class="game-card" data-creator="pepe">
+            <div class="game-tag tag-pepe">Pepe</div>
             <div class="game-logo">🦸</div>
             <h2 class="game-title">Hamo Heroes</h2>
             <p class="game-description">
@@ -199,6 +284,39 @@
                 Pule, corra e colete power-ups nesta jornada cheia de ação e diversão.
             </p>
             <a href="Pedro/Hamo Heroes/index.html" class="play-button">Jogar Agora!</a>
+        </div>
+
+        <div class="game-card" data-creator="pepe">
+            <div class="game-tag tag-pepe">Pepe</div>
+            <div class="game-logo">🥔</div>
+            <h2 class="game-title">Pedro Potato Adventure</h2>
+            <p class="game-description">
+                Ajude o Pedro a proteger sua casa das batatas invasoras! 
+                Use seus super poderes gastronômicos nesta aventura hilariante.
+            </p>
+            <a href="Pedro/Pedro Potato Adventure/index.html" class="play-button">Jogar Agora!</a>
+        </div>
+
+        <div class="game-card" data-creator="lulu">
+            <div class="game-tag tag-lulu">Lulu</div>
+            <div class="game-logo">🌾</div>
+            <h2 class="game-title">Fazendinha da Lulu</h2>
+            <p class="game-description">
+                Ajude a Lulu a coletar cenouras na fazenda! 
+                Cuidado com a grama - um jogo de estratégia e sorte super divertido.
+            </p>
+            <a href="Lulu/Fazendinha da Lulu/index.html" class="play-button">Jogar Agora!</a>
+        </div>
+
+        <div class="game-card" data-creator="papai">
+            <div class="game-tag tag-papai">Papai</div>
+            <div class="game-logo">🥥</div>
+            <h2 class="game-title">Coquinho Roda Tapa</h2>
+            <p class="game-description">
+                Um jogo de plataforma brasileiro! Controle o coquinho e use o famoso 
+                "roda tapa" para derrotar os turistas em uma aventura tropicalesca.
+            </p>
+            <a href="Papai/Coquinho Roda Tapa/index.html" class="play-button">Jogar Agora!</a>
         </div>
     </main>
 
@@ -222,8 +340,41 @@
             }
         }
 
+        // Função para filtrar jogos por criador
+        function filterGames(creator) {
+            const gameCards = document.querySelectorAll('.game-card');
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            
+            // Atualizar estado dos botões
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-filter="${creator}"]`).classList.add('active');
+            
+            // Mostrar/esconder jogos
+            gameCards.forEach(card => {
+                if (creator === 'all' || card.dataset.creator === creator) {
+                    card.classList.remove('hidden');
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+        }
+
+        // Inicializar filtros
+        function initializeFilters() {
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            filterButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const filter = btn.dataset.filter;
+                    filterGames(filter);
+                });
+            });
+        }
+
         // Inicializar estrelas quando a página carregar
-        window.addEventListener('load', createStars);
+        window.addEventListener('load', () => {
+            createStars();
+            initializeFilters();
+        });
 
         // Adicionar efeito de parallax suave
         window.addEventListener('scroll', () => {

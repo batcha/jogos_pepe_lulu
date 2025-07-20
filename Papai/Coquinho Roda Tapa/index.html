@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coquinho Roda Tapa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #00b894; /* Um verde-água tropical */
+            color: #ffffff;
+            text-shadow: 2px 2px 0 #000000;
+        }
+        canvas {
+            background-color: #87CEEB; /* Cor do céu */
+            display: block;
+            margin: 0 auto;
+            border: 4px solid #d63031;
+            border-radius: 8px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .game-container {
+            max-width: 800px;
+        }
+        .control-button {
+            background-color: #ff7675;
+            border: 2px solid #d63031;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 4px 0 #d63031;
+            transition: all 0.1s ease;
+        }
+        .control-button:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div id="game-container" class="w-full game-container">
+        <h1 class="text-3xl md:text-4xl text-center mb-2">Coquinho Roda Tapa</h1>
+        <div class="flex justify-between items-center text-sm md:text-lg mb-2 p-2 bg-black bg-opacity-20 rounded-lg">
+            <div>Pontos: <span id="score">0</span></div>
+            <div>Tempo: <span id="timer">0.00</span>s</div>
+            <div>Turistas: <span id="tourist-count">0</span></div>
+        </div>
+        
+        <canvas id="gameCanvas" width="800" height="480"></canvas>
+
+        <div id="controls" class="md:hidden flex justify-around mt-4 w-full">
+            <button id="leftBtn" class="control-button text-2xl">←</button>
+            <button id="rightBtn" class="control-button text-2xl">→</button>
+            <button id="jumpBtn" class="control-button text-2xl">↑</button>
+            <button id="attackBtn" class="control-button text-xl">ATAQUE</button>
+        </div>
+
+        <div class="text-center mt-4">
+            <button id="main-highscore-btn" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg text-lg">🏆 Ver Recordes</button>
+        </div>
+
+        <div id="instructions" class="text-center mt-4 p-4 bg-black bg-opacity-20 rounded-lg">
+            <p class="hidden md:block">Use <strong class="text-yellow-300">Setas</strong> para mover/pular. Pressione <strong class="text-yellow-300">X</strong> para o Roda Tapa!</p>
+            <p class="md:hidden">Use os botões na tela para jogar.</p>
+            <p>Pegue o <strong class="text-red-500">Caju</strong> para um super tapa!</p>
+        </div>
+
+        <div id="win-message" class="hidden absolute inset-0 bg-black bg-opacity-70 flex flex-col justify-center items-center text-center p-4">
+            <h2 class="text-4xl text-yellow-300 mb-4">VOCÊ VENCEU!</h2>
+            <p class="text-xl mb-2">Pontos Turistas: <span id="base-score"></span></p>
+            <p class="text-xl mb-2">Bônus de Tempo: <span id="time-bonus"></span></p>
+            <p class="text-2xl mb-4">Pontuação Final: <span id="final-score"></span></p>
+            
+            <div id="name-input-section" class="mb-4">
+                <p class="text-lg mb-2">Digite suas iniciais (3 letras):</p>
+                <input type="text" id="player-name" maxlength="3" class="bg-gray-800 text-white text-2xl text-center p-2 rounded border-2 border-yellow-300 w-20" placeholder="AAA">
+                <button id="save-score-btn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2">Salvar</button>
+            </div>
+            
+            <button id="restart-button" class="bg-green-500 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-2xl shadow-lg">Jogar Novamente</button>
+            <button id="highscore-btn" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg text-lg mt-2">Ver Recordes</button>
+        </div>
+
+        <div id="highscore-modal" class="hidden absolute inset-0 bg-black bg-opacity-80 flex flex-col justify-center items-center text-center p-4">
+            <div class="bg-gray-900 p-6 rounded-lg border-4 border-yellow-300 max-w-md w-full">
+                <h2 class="text-3xl text-yellow-300 mb-4">🏆 TOP 10 RECORDES 🏆</h2>
+                <div id="highscore-list" class="text-left mb-4">
+                    <!-- Lista de recordes será inserida aqui -->
+                </div>
+                <button id="close-highscore-btn" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURAÇÕES GLOBAIS ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const TILE_SIZE = 40;
+        const GRAVITY = 0.5;
+        const PLAYER_SPEED = 4;
+        const PLAYER_JUMP = 12;
+
+        // --- ELEMENTOS DA UI ---
+        const timerEl = document.getElementById('timer');
+        const touristCountEl = document.getElementById('tourist-count');
+        const scoreEl = document.getElementById('score');
+        const winMessageEl = document.getElementById('win-message');
+        const baseScoreEl = document.getElementById('base-score');
+        const timeBonusEl = document.getElementById('time-bonus');
+        const finalScoreEl = document.getElementById('final-score');
+        const restartButton = document.getElementById('restart-button');
+        const playerNameInput = document.getElementById('player-name');
+        const saveScoreBtn = document.getElementById('save-score-btn');
+        const highscoreBtn = document.getElementById('highscore-btn');
+        const highscoreModal = document.getElementById('highscore-modal');
+        const highscoreList = document.getElementById('highscore-list');
+        const closeHighscoreBtn = document.getElementById('close-highscore-btn');
+
+        // --- ESTADO DO JOGO ---
+        let levelLayout = [];
+        let player = null; // Inicializado como null
+        let enemies = [];
+        let platforms = [];
+        let powerups = [];
+        let goal = null;
+        let keys = { right: false, left: false, up: false };
+        let startTime = 0;
+        let touristsRemaining = 0;
+        let gameWon = false;
+        let score = 0;
+
+        // --- CLASSES DOS OBJETOS ---
+
+        class Player {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.width = TILE_SIZE * 0.8; this.height = TILE_SIZE * 0.8;
+                this.dx = 0; this.dy = 0;
+                this.onGround = false;
+                this.isAttacking = false;
+                this.attackTimer = 0;
+                this.attackDuration = 20; // Aumentado para uma animação mais longa
+                this.isPoweredUp = false;
+                this.powerUpTimer = 0;
+                this.powerUpDuration = 300; // 5 segundos a 60fps
+            }
+
+            draw() {
+                // Corpo do Coquinho
+                ctx.fillStyle = this.isPoweredUp ? '#f1c40f' : '#2ecc71'; // Muda de cor com power-up
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+
+                // Olhos
+                ctx.fillStyle = 'white';
+                ctx.fillRect(this.x + this.width * 0.2, this.y + this.height * 0.2, 8, 8);
+                ctx.fillRect(this.x + this.width * 0.6, this.y + this.height * 0.2, 8, 8);
+                ctx.fillStyle = 'black';
+                ctx.fillRect(this.x + this.width * 0.2 + 2, this.y + this.height * 0.2 + 2, 4, 4);
+                ctx.fillRect(this.x + this.width * 0.6 + 2, this.y + this.height * 0.2 + 2, 4, 4);
+
+                // Animação de ataque (Roda Tapa)
+                if (this.isAttacking) {
+                    const attackProgress = this.attackTimer / this.attackDuration;
+                    const angle = (1 - attackProgress) * Math.PI * 4; // Gira duas vezes
+                    const handSize = 10;
+                    const attackRadius = this.isPoweredUp ? TILE_SIZE * 1.2 : TILE_SIZE * 0.7;
+
+                    ctx.save();
+                    ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                    ctx.rotate(angle);
+                    
+                    // Mãos
+                    ctx.fillStyle = '#e67e22';
+                    ctx.fillRect(-attackRadius - handSize/2, -handSize/2, handSize, handSize);
+                    ctx.fillRect(attackRadius - handSize/2, -handSize/2, handSize, handSize);
+                    
+                    ctx.restore();
+                }
+            }
+
+            update() {
+                // Movimento
+                if (keys.right) this.dx = PLAYER_SPEED;
+                else if (keys.left) this.dx = -PLAYER_SPEED;
+                else this.dx = 0;
+                if (keys.up && this.onGround) {
+                    this.dy = -PLAYER_JUMP;
+                    this.onGround = false;
+                }
+                this.dy += GRAVITY;
+                this.x += this.dx;
+                this.y += this.dy;
+                this.onGround = false;
+
+                // Colisões com bordas
+                if (this.x < 0) this.x = 0;
+                if (this.x + this.width > canvas.width) this.x = canvas.width - this.width;
+                if (this.y + this.height > canvas.height) {
+                    this.y = canvas.height - this.height;
+                    this.dy = 0;
+                    this.onGround = true;
+                }
+
+                // Timers de ataque e power-up
+                if (this.isAttacking) {
+                    this.attackTimer--;
+                    if (this.attackTimer <= 0) this.isAttacking = false;
+                }
+                if (this.isPoweredUp) {
+                    this.powerUpTimer--;
+                    if (this.powerUpTimer <= 0) this.isPoweredUp = false;
+                }
+            }
+
+            attack() {
+                if (!this.isAttacking) {
+                    this.isAttacking = true;
+                    this.attackTimer = this.attackDuration;
+                }
+            }
+        }
+
+        class Enemy {
+             constructor(x, y) {
+                this.x = x; this.y = y;
+                this.width = TILE_SIZE * 0.8; this.height = TILE_SIZE * 1.2;
+                this.isHit = false;
+                this.direction = 1; this.speed = 0.5;
+                this.moveRange = TILE_SIZE * 2; this.initialX = x;
+            }
+            draw() {
+                if (!this.isHit) {
+                    ctx.fillStyle = '#f1c40f';
+                    ctx.fillRect(this.x, this.y, this.width, this.height);
+                    ctx.fillStyle = '#3498db';
+                    ctx.fillRect(this.x, this.y + this.height * 0.6, this.width, this.height * 0.4);
+                } else {
+                    ctx.save();
+                    ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                    ctx.rotate(Math.PI / 2);
+                    ctx.fillStyle = '#bdc3c7';
+                    ctx.fillRect(-this.height/2, -this.width/2, this.height, this.width);
+                    ctx.fillStyle = 'yellow';
+                    ctx.fillText('Zzz', 0, -15);
+                    ctx.restore();
+                }
+            }
+            update() {
+                if (!this.isHit) {
+                    this.x += this.speed * this.direction;
+                    if (Math.abs(this.x - this.initialX) > this.moveRange) this.direction *= -1;
+                }
+            }
+        }
+
+        class PowerUp {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.width = TILE_SIZE * 0.6; this.height = TILE_SIZE * 0.6;
+                this.isCollected = false;
+            }
+            draw() {
+                if (!this.isCollected) {
+                    // Caju
+                    ctx.fillStyle = '#e74c3c'; // Vermelho
+                    ctx.beginPath();
+                    ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Castanha
+                    ctx.fillStyle = '#7f8c8d'; // Cinza
+                    ctx.fillRect(this.x + this.width/2 - 5, this.y + this.height - 5, 10, 10);
+                }
+            }
+        }
+
+        class Platform {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.width = TILE_SIZE; this.height = TILE_SIZE;
+            }
+            draw() {
+                ctx.fillStyle = '#f39c12';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                ctx.fillStyle = '#27ae60';
+                ctx.fillRect(this.x, this.y, this.width, 10);
+            }
+        }
+        
+        class Goal {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.width = TILE_SIZE; this.height = TILE_SIZE * 2;
+            }
+            draw() {
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(this.x + TILE_SIZE/2 - 5, this.y, 10, this.height);
+                ctx.fillStyle = '#2ecc71';
+                ctx.beginPath();
+                ctx.moveTo(this.x + TILE_SIZE/2, this.y);
+                ctx.lineTo(this.x - 10, this.y - 20);
+                ctx.lineTo(this.x + TILE_SIZE/2, this.y - 10);
+                ctx.lineTo(this.x + TILE_SIZE + 10, this.y - 20);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+
+        // --- LÓGICA DO JOGO ---
+
+        function parseLevel(layout) {
+            platforms = []; enemies = []; powerups = []; player = null; goal = null;
+            for (let r = 0; r < layout.length; r++) {
+                for (let c = 0; c < layout[r].length; c++) {
+                    const char = layout[r][c];
+                    const x = c * TILE_SIZE; const y = r * TILE_SIZE;
+                    if (char === '#') platforms.push(new Platform(x, y));
+                    else if (char === 'P') player = new Player(x, y);
+                    else if (char === 'T') enemies.push(new Enemy(x, y - TILE_SIZE * 0.2));
+                    else if (char === 'G') goal = new Goal(x, y - TILE_SIZE);
+                    else if (char === 'C') powerups.push(new PowerUp(x, y));
+                }
+            }
+            touristsRemaining = enemies.length;
+            touristCountEl.textContent = touristsRemaining;
+            score = 0;
+            scoreEl.textContent = score;
+        }
+
+        function checkCollisions() {
+            // A colisão só é verificada se o jogador existir
+            if (!player) return;
+
+            // Colisão com plataformas
+            platforms.forEach(platform => {
+                if (player.x < platform.x + platform.width && player.x + player.width > platform.x &&
+                    player.y < platform.y + platform.height && player.y + player.height > platform.y) {
+                    if (player.dy > 0 && player.y + player.height - player.dy <= platform.y) {
+                        player.y = platform.y - player.height;
+                        player.dy = 0;
+                        player.onGround = true;
+                    }
+                    if (player.y + player.height > platform.y && player.y < platform.y + platform.height) {
+                         if (player.x + player.width > platform.x && player.x < platform.x && player.dx > 0) player.x = platform.x - player.width;
+                         if (player.x < platform.x + platform.width && player.x + player.width > platform.x + platform.width && player.dx < 0) player.x = platform.x + platform.width;
+                    }
+                }
+            });
+
+            // Colisão do ataque com inimigos
+            if (player.isAttacking) {
+                enemies.forEach(enemy => {
+                    if (!enemy.isHit) {
+                        const attackRadius = (player.isPoweredUp ? TILE_SIZE * 1.2 : TILE_SIZE * 0.7) + enemy.width / 2;
+                        const dist = Math.hypot(
+                            (player.x + player.width / 2) - (enemy.x + enemy.width / 2),
+                            (player.y + player.height / 2) - (enemy.y + enemy.height / 2)
+                        );
+                        if (dist < attackRadius) {
+                            enemy.isHit = true;
+                            touristsRemaining--;
+                            touristCountEl.textContent = touristsRemaining;
+                            score += 100;
+                            scoreEl.textContent = score;
+                        }
+                    }
+                });
+            }
+            
+            // Colisão com power-ups
+            powerups.forEach(powerup => {
+                if (!powerup.isCollected && player.x < powerup.x + powerup.width && player.x + player.width > powerup.x &&
+                    player.y < powerup.y + powerup.height && player.y + player.height > powerup.y) {
+                    powerup.isCollected = true;
+                    player.isPoweredUp = true;
+                    player.powerUpTimer = player.powerUpDuration;
+                }
+            });
+
+            // Colisão com o objetivo
+            if (touristsRemaining === 0 && goal && player.x < goal.x + goal.width && player.x + player.width > goal.x &&
+                player.y < goal.y + goal.height && player.y + player.height > goal.y) {
+                winGame();
+            }
+        }
+
+        function winGame() {
+            if (gameWon) return;
+            gameWon = true;
+            const elapsedTime = (Date.now() - startTime) / 1000;
+            const timeBonus = Math.max(0, Math.floor((60 - elapsedTime) * 10)); // 10 pontos por segundo abaixo de 60s
+            const finalScore = score + timeBonus;
+            
+            baseScoreEl.textContent = score;
+            timeBonusEl.textContent = timeBonus;
+            finalScoreEl.textContent = finalScore;
+            
+            // Verifica se a pontuação é alta o suficiente para entrar no top 10
+            if (isHighScore(finalScore)) {
+                document.getElementById('name-input-section').style.display = 'block';
+                playerNameInput.focus();
+            } else {
+                document.getElementById('name-input-section').style.display = 'none';
+            }
+            
+            winMessageEl.classList.remove('hidden');
+            winMessageEl.classList.add('flex');
+        }
+
+        // --- SISTEMA DE HIGHSCORE ---
+        function loadHighScores() {
+            const saved = localStorage.getItem('coquinhoHighScores');
+            if (saved) {
+                return JSON.parse(saved);
+            }
+            return [];
+        }
+
+        function saveHighScores(scores) {
+            localStorage.setItem('coquinhoHighScores', JSON.stringify(scores));
+        }
+
+        function isHighScore(newScore) {
+            const scores = loadHighScores();
+            if (scores.length < 10) return true;
+            return newScore > scores[scores.length - 1].score;
+        }
+
+        function addHighScore(name, score) {
+            const scores = loadHighScores();
+            scores.push({ name: name.toUpperCase(), score: score, date: new Date().toLocaleDateString() });
+            scores.sort((a, b) => b.score - a.score);
+            scores.splice(10); // Manter apenas top 10
+            saveHighScores(scores);
+        }
+
+        function displayHighScores() {
+            const scores = loadHighScores();
+            let html = '';
+            
+            if (scores.length === 0) {
+                html = '<p class="text-center text-gray-400">Nenhum recorde ainda!</p>';
+            } else {
+                scores.forEach((entry, index) => {
+                    const position = index + 1;
+                    const medal = position <= 3 ? ['🥇', '🥈', '🥉'][position - 1] : `${position}.`;
+                    html += `
+                        <div class="flex justify-between items-center mb-2 p-2 ${position <= 3 ? 'bg-yellow-900' : 'bg-gray-800'} rounded">
+                            <span class="text-lg">${medal} ${entry.name}</span>
+                            <span class="text-lg text-yellow-300">${entry.score}</span>
+                        </div>
+                    `;
+                });
+            }
+            
+            highscoreList.innerHTML = html;
+        }
+
+        function update() {
+            // Adicionada verificação para garantir que o jogador existe antes de atualizar
+            if (gameWon || !player) return;
+            
+            player.update();
+            enemies.forEach(enemy => enemy.update());
+            checkCollisions();
+            timerEl.textContent = ((Date.now() - startTime) / 1000).toFixed(2);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#FAD_E7A';
+            ctx.fillRect(0, canvas.height - TILE_SIZE * 2, canvas.width, TILE_SIZE * 2);
+
+            platforms.forEach(p => p.draw());
+            if(goal) goal.draw();
+            powerups.forEach(p => p.draw());
+            enemies.forEach(e => e.draw());
+            
+            // Adicionada verificação para garantir que o jogador existe antes de desenhar
+            if(player) player.draw();
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- CONTROLES ---
+        window.addEventListener('keydown', (e) => {
+            if (!player) return; // Não processa input se o jogador não existe
+            if (e.key === 'ArrowRight') keys.right = true;
+            if (e.key === 'ArrowLeft') keys.left = true;
+            if (e.key === 'ArrowUp') keys.up = true;
+            if (e.key.toLowerCase() === 'x') player.attack();
+        });
+        window.addEventListener('keyup', (e) => {
+            if (!player) return;
+            if (e.key === 'ArrowRight') keys.right = false;
+            if (e.key === 'ArrowLeft') keys.left = false;
+            if (e.key === 'ArrowUp') keys.up = false;
+        });
+        
+        const leftBtn = document.getElementById('leftBtn'), rightBtn = document.getElementById('rightBtn'), jumpBtn = document.getElementById('jumpBtn'), attackBtn = document.getElementById('attackBtn');
+        leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); if(player) keys.left = true; });
+        leftBtn.addEventListener('touchend', (e) => { e.preventDefault(); if(player) keys.left = false; });
+        rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); if(player) keys.right = true; });
+        rightBtn.addEventListener('touchend', (e) => { e.preventDefault(); if(player) keys.right = false; });
+        jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); if(player) keys.up = true; });
+        jumpBtn.addEventListener('touchend', (e) => { e.preventDefault(); if(player) keys.up = false; });
+        attackBtn.addEventListener('touchstart', (e) => { e.preventDefault(); if(player) player.attack(); });
+
+        // --- EVENT LISTENERS DO HIGHSCORE ---
+        saveScoreBtn.addEventListener('click', () => {
+            const playerName = playerNameInput.value.trim();
+            if (playerName.length === 3) {
+                const finalScore = parseInt(finalScoreEl.textContent);
+                addHighScore(playerName, finalScore);
+                document.getElementById('name-input-section').style.display = 'none';
+                alert('Recorde salvo com sucesso!');
+            } else {
+                alert('Digite exatamente 3 letras!');
+            }
+        });
+
+        playerNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                saveScoreBtn.click();
+            }
+            // Permite apenas letras
+            if (!/[a-zA-Z]/.test(e.key) && e.key !== 'Backspace') {
+                e.preventDefault();
+            }
+        });
+
+        highscoreBtn.addEventListener('click', () => {
+            displayHighScores();
+            highscoreModal.classList.remove('hidden');
+            highscoreModal.classList.add('flex');
+        });
+
+        closeHighscoreBtn.addEventListener('click', () => {
+            highscoreModal.classList.add('hidden');
+            highscoreModal.classList.remove('flex');
+        });
+
+        // Botão de highscore na tela principal
+        document.getElementById('main-highscore-btn').addEventListener('click', () => {
+            displayHighScores();
+            highscoreModal.classList.remove('hidden');
+            highscoreModal.classList.add('flex');
+        });
+
+        // --- INICIALIZAÇÃO ---
+        function init() {
+            // CORREÇÃO: Adicionado o 'P' para a posição inicial do jogador
+            const defaultLevel = `
+....................
+....................
+....................
+....................
+..C........T........
+.####.....####......
+....................
+.........T..........
+...P...######.......
+.################G..
+####################
+####################
+            `.trim().split('\n').map(row => row.split(''));
+
+            gameWon = false;
+            winMessageEl.classList.add('hidden');
+            parseLevel(defaultLevel);
+            startTime = Date.now();
+            if (!gameLoop.isRunning) {
+                gameLoop();
+                gameLoop.isRunning = true;
+            }
+        }
+        
+        restartButton.addEventListener('click', init);
+        init();
+
+    </script>
+</body>
+</html>

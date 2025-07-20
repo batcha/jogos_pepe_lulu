@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedro Potato Adventure</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🥔 Pedro Potato Adventure 🥔</h1>
+            <div class="score-board">
+                <div class="score">Pontos: <span id="score">0</span></div>
+                <div class="lives">Vidas: <span id="lives">3</span></div>
+                <div class="level">Nível: <span id="level">1</span></div>
+            </div>
+        </div>
+        
+        <div class="game-area" id="gameArea">
+            <div class="house" id="house">🏠</div>
+            <div class="player" id="player">🧒</div>
+        </div>
+        
+        <div class="controls">
+            <p>Use as setas ←→ para mover e ESPAÇO para soltar um pum! 💨<br>
+            Proteja a casa das batatas que sobem do chão!</p>
+            <button id="startBtn">Iniciar Jogo</button>
+            <button id="pauseBtn" disabled>Pausar</button>
+            <button id="restartBtn">Reiniciar</button>
+        </div>
+        
+        <div class="game-over" id="gameOver" style="display: none;">
+            <h2>Game Over!</h2>
+            <p>Pontuação Final: <span id="finalScore">0</span></p>
+            <button onclick="restartGame()">Jogar Novamente</button>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

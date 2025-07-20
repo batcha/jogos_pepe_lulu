@@ -1,0 +1,349 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier New', monospace; /* Fonte pixelada */
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    image-rendering: pixelated; /* Renderização pixelada */
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+.game-container {
+    background: #0f0f23; /* Fundo escuro pixelado */
+    border: 4px solid #00ff00; /* Borda verde neon */
+    border-radius: 0; /* Sem bordas arredondadas para visual pixelado */
+    padding: 20px;
+    box-shadow: 
+        0 0 20px #00ff00, 
+        inset 0 0 20px rgba(0, 255, 0, 0.1);
+    max-width: 900px;
+    width: 100%;
+    image-rendering: pixelated;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.header h1 {
+    color: #00ff00; /* Verde neon */
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    text-shadow: 
+        0 0 5px #00ff00,
+        0 0 10px #00ff00,
+        2px 2px 0px #006600; /* Sombra pixelada */
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+}
+
+.score-board {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #ffff00; /* Amarelo pixelado */
+    font-family: 'Courier New', monospace;
+    text-shadow: 
+        0 0 5px #ffff00,
+        1px 1px 0px #cccc00;
+}
+
+.game-area {
+    width: 100%;
+    height: 500px;
+    background: 
+        radial-gradient(circle at 20% 20%, #001122 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, #002244 0%, transparent 50%),
+        linear-gradient(to bottom, #000011 0%, #001133 50%, #002244 100%);
+    border: 4px solid #00ffff; /* Borda ciano */
+    border-radius: 0;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: 
+        inset 0 0 50px rgba(0, 255, 255, 0.1),
+        0 0 20px rgba(0, 255, 255, 0.3);
+    image-rendering: pixelated;
+}
+
+.house {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 3em;
+    z-index: 10;
+    filter: 
+        drop-shadow(0 0 10px #ffff00)
+        drop-shadow(2px 2px 0px #cc6600);
+    image-rendering: pixelated;
+}
+
+.player {
+    position: absolute;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 2.5em;
+    transition: left 0.1s steps(8, end); /* Transição pixelada */
+    z-index: 5;
+    filter: 
+        drop-shadow(0 0 8px #00ff00)
+        drop-shadow(2px 2px 0px #006600);
+    image-rendering: pixelated;
+}
+
+.potato {
+    position: absolute;
+    font-size: 2em;
+    z-index: 3;
+    transition: all 0.1s steps(4, end); /* Movimento pixelado */
+    animation: pixelBounce 0.8s steps(4, end) infinite alternate;
+    filter: 
+        drop-shadow(0 0 6px #ff6600)
+        drop-shadow(1px 1px 0px #cc3300);
+    image-rendering: pixelated;
+}
+
+@keyframes pixelBounce {
+    0% { transform: translateY(0px) scaleY(1); }
+    100% { transform: translateY(-8px) scaleY(0.9); }
+}
+
+.fart {
+    position: absolute;
+    font-size: 3em;
+    z-index: 4;
+    animation: pixelFartAnimation 1s steps(6, end) forwards;
+    filter: 
+        drop-shadow(0 0 12px #ffffff)
+        drop-shadow(0 0 8px #cccccc);
+    image-rendering: pixelated;
+}
+
+@keyframes pixelFartAnimation {
+    0% {
+        opacity: 1;
+        transform: scale(0.5) rotate(0deg);
+        filter: 
+            drop-shadow(0 0 12px #ffffff)
+            drop-shadow(0 0 8px #cccccc);
+    }
+    50% {
+        opacity: 0.9;
+        transform: scale(1.3) rotate(5deg);
+        filter: 
+            drop-shadow(0 0 20px #ffffff)
+            drop-shadow(0 0 15px #cccccc);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(2.5) rotate(10deg);
+        filter: 
+            drop-shadow(0 0 30px #ffffff)
+            drop-shadow(0 0 25px #cccccc);
+    }
+}
+
+.explosion {
+    position: absolute;
+    font-size: 3em;
+    z-index: 6;
+    animation: pixelExplode 0.8s steps(8, end) forwards;
+    filter: 
+        drop-shadow(0 0 20px #ff0000)
+        drop-shadow(0 0 10px #ffff00);
+    image-rendering: pixelated;
+}
+
+@keyframes pixelExplode {
+    0% {
+        opacity: 1;
+        transform: scale(0.1) rotate(0deg);
+        filter: 
+            drop-shadow(0 0 5px #ff0000)
+            drop-shadow(0 0 3px #ffff00);
+    }
+    25% {
+        opacity: 1;
+        transform: scale(0.8) rotate(90deg);
+        filter: 
+            drop-shadow(0 0 15px #ff0000)
+            drop-shadow(0 0 8px #ffff00);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.8) rotate(180deg);
+        filter: 
+            drop-shadow(0 0 25px #ff0000)
+            drop-shadow(0 0 15px #ffff00);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.2) rotate(360deg);
+        filter: 
+            drop-shadow(0 0 30px #ff0000)
+            drop-shadow(0 0 20px #ffff00);
+    }
+}
+
+.controls {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.controls p {
+    margin-bottom: 15px;
+    font-size: 1.1em;
+    color: #00ffff; /* Ciano */
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    text-shadow: 
+        0 0 5px #00ffff,
+        1px 1px 0px #006666;
+}
+
+.controls button {
+    background: linear-gradient(45deg, #ff0066, #ff3366);
+    border: 2px solid #ffffff;
+    padding: 12px 24px;
+    margin: 0 10px;
+    border-radius: 0; /* Bordas quadradas para estilo pixelado */
+    color: white;
+    font-size: 1em;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    cursor: pointer;
+    transition: all 0.1s steps(2, end);
+    box-shadow: 
+        0 0 10px rgba(255, 0, 102, 0.5),
+        inset 0 0 10px rgba(255, 255, 255, 0.1);
+    text-shadow: 1px 1px 0px #cc0033;
+    image-rendering: pixelated;
+}
+
+.controls button:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+        0 0 20px rgba(255, 0, 102, 0.8),
+        inset 0 0 15px rgba(255, 255, 255, 0.2);
+    background: linear-gradient(45deg, #ff3388, #ff5599);
+}
+
+.controls button:disabled {
+    background: #333333;
+    color: #666666;
+    border-color: #666666;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.game-over {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.98) 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 1.5em;
+    font-family: 'Courier New', monospace;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+}
+
+.game-over h2 {
+    font-size: 3em;
+    color: #ff0066;
+    margin-bottom: 20px;
+    text-shadow: 
+        0 0 20px #ff0066,
+        0 0 10px #ff3388,
+        2px 2px 0px #cc0033;
+    animation: pixelGlow 2s steps(4, end) infinite alternate;
+}
+
+@keyframes pixelGlow {
+    0% { 
+        text-shadow: 
+            0 0 20px #ff0066,
+            0 0 10px #ff3388,
+            2px 2px 0px #cc0033;
+    }
+    100% { 
+        text-shadow: 
+            0 0 30px #ff0066,
+            0 0 20px #ff3388,
+            0 0 10px #ff6699,
+            2px 2px 0px #cc0033;
+    }
+}
+
+.game-over button {
+    background: linear-gradient(45deg, #00ff00, #33ff33);
+    border: 2px solid #ffffff;
+    padding: 15px 30px;
+    border-radius: 0;
+    color: #000000;
+    font-size: 1.2em;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.1s steps(2, end);
+    box-shadow: 
+        0 0 15px rgba(0, 255, 0, 0.5),
+        inset 0 0 10px rgba(255, 255, 255, 0.1);
+    text-shadow: 1px 1px 0px #006600;
+}
+
+.game-over button:hover {
+    transform: scale(1.05);
+    background: linear-gradient(45deg, #33ff33, #66ff66);
+    box-shadow: 
+        0 0 25px rgba(0, 255, 0, 0.8),
+        inset 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 768px) {
+    .game-container {
+        margin: 10px;
+        padding: 15px;
+    }
+    
+    .header h1 {
+        font-size: 2em;
+    }
+    
+    .score-board {
+        flex-direction: column;
+        gap: 10px;
+        font-size: 1em;
+    }
+    
+    .game-area {
+        height: 400px;
+    }
+    
+    .controls button {
+        padding: 10px 20px;
+        font-size: 0.9em;
+        margin: 5px;
+    }
+}
