@@ -9,6 +9,141 @@ window.addEventListener('DOMContentLoaded', function () {
     var gizmoManager = null;
     var gizmoMode = 'move';
 
+    // Função para atualizar campos da bottom bar
+    function updateBottomBar() {
+        const colorInput = document.getElementById('edit-color');
+        const sizeInput = document.getElementById('edit-size');
+        const posX = document.getElementById('edit-pos-x');
+        const posY = document.getElementById('edit-pos-y');
+        const posZ = document.getElementById('edit-pos-z');
+        const rotX = document.getElementById('edit-rot-x');
+        const rotY = document.getElementById('edit-rot-y');
+        const rotZ = document.getElementById('edit-rot-z');
+        const propSelect = document.getElementById('edit-props');
+        const propValue = document.getElementById('edit-prop-value');
+        if (selectedIdx === null || !objectList[selectedIdx]) {
+            colorInput.value = '#888888';
+            sizeInput.value = '';
+            posX.value = posY.value = posZ.value = '';
+            rotX.value = rotY.value = rotZ.value = '';
+            propValue.checked = false;
+            return;
+        }
+        const obj = objectList[selectedIdx];
+        // Cor
+        if (obj.mesh.material && obj.mesh.material.diffuseColor) {
+            const c = obj.mesh.material.diffuseColor;
+            colorInput.value = '#' + ((1 << 24) + (Math.round(c.r * 255) << 16) + (Math.round(c.g * 255) << 8) + Math.round(c.b * 255)).toString(16).slice(1);
+        }
+        // Tamanho
+        if (obj.type === 'plane') {
+            sizeInput.value = obj.mesh.scaling.x;
+        } else {
+            sizeInput.value = obj.mesh.scaling.x;
+        }
+        // Posição
+        posX.value = obj.mesh.position.x;
+        posY.value = obj.mesh.position.y;
+        posZ.value = obj.mesh.position.z;
+        // Rotação
+        rotX.value = obj.mesh.rotation.x;
+        rotY.value = obj.mesh.rotation.y;
+        rotZ.value = obj.mesh.rotation.z;
+        // Propriedade
+        // Atualiza o dropdown para o primeiro valor true, se houver
+        let found = false;
+        if (obj.props) {
+            for (const key of ['movel','perigo','plataforma','decorativo']) {
+                if (obj.props[key]) {
+                    propSelect.value = key;
+                    propValue.checked = true;
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found) {
+            propSelect.value = 'movel';
+            propValue.checked = obj.props && obj.props['movel'];
+        }
+    }
+
+    // Atualiza bottom bar ao selecionar objeto
+    function selectObject(idx) {
+        objectList.forEach((obj, i) => {
+            obj.selected = (i === idx);
+            if (obj.selected) {
+                obj.mesh.material.emissiveColor = new BABYLON.Color3(1, 0.7, 0.2);
+            } else {
+                obj.mesh.material.emissiveColor = BABYLON.Color3.Black();
+            }
+        });
+    selectedIdx = idx;
+    updateObjectList();
+    updateBottomBar();
+        if (gizmoManager) {
+            if (idx !== null && objectList[idx]) {
+                gizmoManager.attachToMesh(objectList[idx].mesh);
+                updateGizmoMode(gizmoMode);
+            } else {
+                gizmoManager.attachToMesh(null);
+            }
+        }
+    }
+
+    // Eventos dos campos da bottom bar
+    document.getElementById('edit-color').oninput = function(e) {
+        if (selectedIdx === null || !objectList[selectedIdx]) return;
+        const obj = objectList[selectedIdx];
+        const hex = e.target.value;
+        const r = parseInt(hex.slice(1,3),16)/255;
+        const g = parseInt(hex.slice(3,5),16)/255;
+        const b = parseInt(hex.slice(5,7),16)/255;
+        obj.mesh.material.diffuseColor = new BABYLON.Color3(r,g,b);
+    };
+    document.getElementById('edit-size').oninput = function(e) {
+        if (selectedIdx === null || !objectList[selectedIdx]) return;
+        const obj = objectList[selectedIdx];
+        const val = parseFloat(e.target.value);
+        obj.mesh.scaling.x = obj.mesh.scaling.y = obj.mesh.scaling.z = val;
+    };
+    document.getElementById('edit-pos-x').oninput = function(e) {
+        if (selectedIdx === null || !objectList[selectedIdx]) return;
+        objectList[selectedIdx].mesh.position.x = parseFloat(e.target.value);
+    };
+    document.getElementById('edit-pos-y').oninput = function(e) {
+        if (selectedIdx === null || !objectList[selectedIdx]) return;
+        objectList[selectedIdx].mesh.position.y = parseFloat(e.target.value);
+    };
+    document.getElementById('edit-pos-z').oninput = function(e) {
+        if (selectedIdx === null || !objectList[selectedIdx]) return;
+        objectList[selectedIdx].mesh.position.z = parseFloat(e.target.value);
+    };
+    document.getElementById('edit-rot-x').oninput = function(e) {
+        if (selectedIdx === null || !objectList[selectedIdx]) return;
+        objectList[selectedIdx].mesh.rotation.x = parseFloat(e.target.value);
+    };
+    document.getElementById('edit-rot-y').oninput = function(e) {
+        if (selectedIdx === null || !objectList[selectedIdx]) return;
+        objectList[selectedIdx].mesh.rotation.y = parseFloat(e.target.value);
+    };
+    document.getElementById('edit-rot-z').oninput = function(e) {
+        if (selectedIdx === null || !objectList[selectedIdx]) return;
+        objectList[selectedIdx].mesh.rotation.z = parseFloat(e.target.value);
+    };
+    document.getElementById('edit-props').onchange = function(e) {
+        updateBottomBar();
+    };
+    document.getElementById('edit-prop-value').oninput = function(e) {
+        if (selectedIdx === null || !objectList[selectedIdx]) return;
+        const obj = objectList[selectedIdx];
+        const prop = document.getElementById('edit-props').value;
+        obj.props[prop] = e.target.checked;
+    };
+
+    // Atualiza bottom bar ao iniciar (após variáveis e DOM)
+    updateBottomBar();
+
     // Função para atualizar o modo do gizmo
     function updateGizmoMode(mode) {
         gizmoMode = mode;
@@ -32,6 +167,15 @@ window.addEventListener('DOMContentLoaded', function () {
     var groundMat = new BABYLON.StandardMaterial('groundMat', scene);
     groundMat.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
     ground.material = groundMat;
+        // Adiciona o plano à lista de objetos
+        objectList.push({
+            name: 'ground',
+            type: 'plane',
+            mesh: ground,
+            props: { plataforma: true, movel: false, perigo: false, decorativo: false },
+            selected: false
+        });
+        updateObjectList();
 
     // Gizmo Manager
     gizmoManager = new BABYLON.GizmoManager(scene);
@@ -111,13 +255,13 @@ window.addEventListener('DOMContentLoaded', function () {
         updateObjectList();
     };
     document.getElementById('add-plane').onclick = function() {
-        var plane = BABYLON.MeshBuilder.CreatePlane('plane_' + objectList.length, { size: 2 }, scene);
-        plane.position.y = 1;
-        var mat = new BABYLON.StandardMaterial('mat', scene);
-        mat.diffuseColor = new BABYLON.Color3(0.2, 0.6, 0.8);
-        plane.material = mat;
-        objectList.push({ name: plane.name, mesh: plane, type: 'Plano', selected: false });
-        updateObjectList();
+    var plane = BABYLON.MeshBuilder.CreatePlane('plane_' + objectList.length, { size: 20 }, scene);
+    plane.position.y = 1;
+    var mat = new BABYLON.StandardMaterial('mat', scene);
+    mat.diffuseColor = new BABYLON.Color3(0.2, 0.6, 0.8);
+    plane.material = mat;
+    objectList.push({ name: plane.name, mesh: plane, type: 'plane', props: { plataforma: true, movel: false, perigo: false, decorativo: false }, selected: false });
+    updateObjectList();
     };
 
     // Seleção visual (gizmo cuida do movimento)
@@ -169,8 +313,8 @@ window.addEventListener('DOMContentLoaded', function () {
                         mesh = BABYLON.MeshBuilder.CreateBox(objData.name, { size: 2 }, scene);
                     } else if (objData.type === 'Esfera') {
                         mesh = BABYLON.MeshBuilder.CreateSphere(objData.name, { diameter: 2 }, scene);
-                    } else if (objData.type === 'Plano') {
-                        mesh = BABYLON.MeshBuilder.CreatePlane(objData.name, { size: 2 }, scene);
+                    } else if (objData.type === 'plane') {
+                        mesh = BABYLON.MeshBuilder.CreatePlane(objData.name, { size: 20 }, scene);
                     } else {
                         return;
                     }
