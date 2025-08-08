@@ -1,46 +1,36 @@
-# Plano de Desenvolvimento — Coquinho Roda Tapa Isometric
 
-Checklist detalhado para acompanhar o progresso do desenvolvimento do jogo. Marque cada item conforme for concluído.
+# Plano de Desenvolvimento — Coquinho Roda Tapa 3D Lowpoly
+
+Checklist detalhado para acompanhar o progresso do desenvolvimento do jogo 3D lowpoly, com engine simples e fácil manutenção. Marque cada item conforme for concluído.
 
 ---
 
+
 ## 1. Estrutura Inicial do Projeto
-- [x] Criar pastas principais (`/assets/`, `/src/`, `/editor/`, `/docs/`)
-- [x] Configurar ambiente de desenvolvimento (VS Code, Node.js, servidor local)
+- [x] Criar pastas principais (`/assets/`, `/src/`, `/docs/`)
+- [x] Escolher engine 3D simples (Babylon.js, Three.js ou Godot)
+- [x] Configurar ambiente de desenvolvimento (VS Code, engine escolhida)
 - [x] Definir MVP (fase jogável, personagem, inimigo, pontuação)
-- [x] Criar arquivo de configuração inicial do projeto (`index.html`, `main.js`)
+- [x] Criar arquivo de configuração inicial do projeto (`index.html`, `main.js` ou projeto Godot)
 - [x] Adicionar README com instruções básicas
 
-## 2. Editor de Fases
-- [x] Escolher biblioteca para renderização isométrica (Phaser, Pixi.js)
-- [x] Implementar grid isométrico básico
-- [ ] Adicionar ferramenta para desenhar tiles
-- [ ] Adicionar ferramenta para posicionar plataformas
-- [ ] Adicionar ferramenta para posicionar perigos
-- [ ] Adicionar ferramenta para posicionar inimigos
-- [ ] Adicionar ferramenta para posicionar segredos
-- [ ] Permitir exportação/importação de mapas em JSON
-- [ ] Integrar IA para sugestões de layout
-- [ ] Implementar botão de teste rápido da fase criada
 
-## 3. Personagem Principal
-- [ ] Criar sprites básicos do personagem
-- [ ] Implementar animação idle
-- [ ] Implementar animação walk
-- [ ] Implementar animação run
-- [ ] Implementar animação attack (giro/tapa)
-- [ ] Implementar animação special attack
-- [ ] Implementar animação hitted
-- [ ] Implementar animação death
-- [ ] Implementar animação jump
+## 2. Criação de Fases 3D
+- [x] Definir ferramenta de criação de fases (editor visual da engine)
+- [ ] Criar modelos lowpoly para chão, plataformas, perigos, inimigos, segredos
+- [ ] Criar cenas/fases no editor visual
+- [ ] Exportar fases para o formato da engine
+- [ ] Implementar importação/carregamento das fases no jogo
+- [ ] Testar carregamento e renderização das fases 3D
+
+
+## 3. Personagem Principal 3D
+- [ ] Criar modelo lowpoly do personagem
+- [ ] Implementar animações básicas (idle, walk, run, attack, jump, death)
 - [ ] Adicionar sistema de energia (barra visual)
 - [ ] Implementar ataque principal (giro/tapa estilo Crash Bandicoot)
-- [ ] Adicionar powerup de velocidade
-- [ ] Adicionar powerup de escudo
-- [ ] Adicionar powerup de ataque especial
-- [ ] Adicionar powerup de salto duplo
-- [ ] Adicionar powerup de magnetismo
-- [ ] Integrar IA para geração de sprites/animações
+- [ ] Adicionar powerups (velocidade, escudo, ataque especial, salto duplo, magnetismo)
+
 
 ## 4. Sistema Rogue Lite
 - [ ] Estruturar sistema de habilidades
@@ -50,41 +40,22 @@ Checklist detalhado para acompanhar o progresso do desenvolvimento do jogo. Marq
 - [ ] Implementar lógica de progressão por nível
 - [ ] Implementar desafios secretos para subir de nível
 
-## 5. Inimigos e Chefes
-- [ ] Criar sprites básicos de inimigos
-- [ ] Implementar animação idle de inimigos
-- [ ] Implementar animação walk de inimigos
-- [ ] Implementar animação run de inimigos
-- [ ] Implementar animação attack de inimigos
-- [ ] Implementar animação hitted de inimigos
-- [ ] Implementar animação death de inimigos
-- [ ] Implementar animação jump de inimigos (para alguns)
-- [ ] Implementar lógica de patrulha
-- [ ] Implementar lógica de perseguição
-- [ ] Implementar lógica de fuga
-- [ ] Implementar lógica de ataque à distância
-- [ ] Criar sprites de chefes
+
+## 5. Inimigos e Chefes 3D
+- [ ] Criar modelos lowpoly de inimigos
+- [ ] Implementar animações básicas de inimigos (idle, walk, run, attack, death)
+- [ ] Implementar lógica de patrulha, perseguição, fuga, ataque à distância
+- [ ] Criar modelos de chefes
 - [ ] Implementar animações de chefes (attack, walk, idle, taunt, hitted, jump, death)
 - [ ] Implementar movimentos especiais de chefes
-- [ ] Integrar IA para geração de inimigos, sprites e padrões de ataque
 
-## 6. Cenários, Perigos e Plataformas
-- [ ] Implementar tiles básicos (chão, plataforma, perigo)
-- [ ] Adicionar espinhos
-- [ ] Adicionar água
-- [ ] Adicionar buracos
-- [ ] Adicionar lava
-- [ ] Adicionar vento
-- [ ] Adicionar lasers
-- [ ] Adicionar blocos móveis
-- [ ] Adicionar plantas carnívoras
-- [ ] Adicionar zonas de teleporte
-- [ ] Implementar plataformas elevadas
-- [ ] Implementar plataformas móveis
-- [ ] Implementar blocos que caem
-- [ ] Adicionar segredos
-- [ ] Adicionar triggers para fases secretas
-- [ ] Integrar IA para sugerir perigos, segredos e puzzles
+
+## 6. Cenários, Perigos e Plataformas 3D
+- [ ] Implementar modelos lowpoly para chão, plataformas, perigos
+- [ ] Adicionar espinhos, água, buracos, lava, vento, lasers, blocos móveis, plantas carnívoras, zonas de teleporte
+- [ ] Implementar plataformas elevadas, móveis, blocos que caem
+- [ ] Adicionar segredos e triggers para fases secretas
+
 
 ## 7. Sistema de Ranking, Pontuação e Estatísticas
 - [ ] Implementar sistema de pontuação por tempo
@@ -98,19 +69,23 @@ Checklist detalhado para acompanhar o progresso do desenvolvimento do jogo. Marq
 - [ ] Integrar Firebase para estatísticas
 - [ ] Integrar IA para análise de dados e balanceamento
 
+
 ## 8. Vidas/Energia
 - [ ] Implementar barra de energia
 - [ ] Implementar powerups para recuperar energia
 - [ ] Ajustar energia conforme dificuldade
 
+
 ## 9. Cutscenes
 - [ ] Implementar cutscene estática antes de cada fase
 - [ ] Implementar cutscene animada antes de cada fase
+
 
 ## 10. Tela de Fim de Jogo
 - [ ] Implementar tela estática de fim de jogo
 - [ ] Implementar tela animada de fim de jogo
 - [ ] Mostrar ranking, estatísticas e segredos encontrados
+
 
 ## 11. Dificuldade
 - [ ] Implementar seleção de dificuldade (fácil, médio, difícil)
@@ -124,12 +99,14 @@ Checklist detalhado para acompanhar o progresso do desenvolvimento do jogo. Marq
 - [ ] Adicionar chefes com mais fases
 - [ ] Adicionar menos checkpoints conforme dificuldade
 
+
 ## 12. Firebase
 - [ ] Implementar ranking no Firebase
 - [ ] Implementar estatísticas de jogadores no Firebase
 - [ ] Implementar número de jogadas no Firebase
 - [ ] Implementar tempo total jogado no Firebase
 - [ ] Implementar pontos por jogador no Firebase
+
 
 ## 13. Controles
 - [ ] Implementar suporte ao teclado para movimentação, ataques e ações

@@ -10,10 +10,20 @@ O jogo poderá ser jogado com teclado ou com joystick (gamepad USB/Bluetooth), p
 - `/editor/` — editor de fases
 - `/docs/` — documentação e guias
 
-## 1. Editor de Fases
-- Ferramenta visual para desenhar mapas isométricos, posicionar plataformas, perigos, inimigos e segredos.
-- Exportação/importação de mapas em JSON.
-- Interface para adicionar triggers de segredos e powerups.
+## 1. Editor de Fases (Tiled)
+Utilize o **Tiled Map Editor** para criar mapas isométricos do jogo.
+
+- Crie tilesets personalizados para o projeto (chão, plataformas, perigos, inimigos, segredos, etc).
+- Organize o mapa em camadas (ex: ground, platforms, dangers, enemies, secrets).
+- Adicione objetos e triggers usando a ferramenta de objetos do Tiled.
+- Exporte o mapa em formato JSON para importar no Phaser.
+- Consulte a documentação do Phaser para importar mapas do Tiled: https://phaser.io/examples/v3/category/tilemaps
+
+**Dicas:**
+- Mantenha os tilesets organizados em `/assets/tilesets/`.
+- Salve os mapas em `/assets/maps/`.
+- Use nomes claros para camadas e objetos no Tiled.
+- Teste o mapa no jogo após cada exportação.
 
 ## 2. Personagem Principal
 - Animações: idle, walk, run, attack (giro/tapa estilo Crash Bandicoot), special attack, hitted, death, jump.
