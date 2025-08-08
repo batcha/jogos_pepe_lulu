@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste de Carregamento GLB</title>
+</head>
+<body>
+    <h1>Teste do Browser de Arquivos</h1>
+    <input type="file" id="test-file" accept=".glb,.gltf" multiple>
+    <div id="result"></div>
+    
+    <script>
+        document.getElementById('test-file').onchange = function(e) {
+            const files = Array.from(e.target.files);
+            const result = document.getElementById('result');
+            
+            files.forEach(file => {
+                result.innerHTML += `<p>Arquivo: ${file.name}, Tamanho: ${file.size} bytes, Tipo: ${file.type}</p>`;
+                
+                // Testar leitura como ArrayBuffer
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const arrayBuffer = event.target.result;
+                    result.innerHTML += `<p>✅ ${file.name} lido com sucesso como ArrayBuffer (${arrayBuffer.byteLength} bytes)</p>`;
+                };
+                reader.onerror = function(error) {
+                    result.innerHTML += `<p>❌ Erro ao ler ${file.name}: ${error}</p>`;
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        };
+    </script>
+</body>
+</html>

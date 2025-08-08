@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste de Carregamento GLB com Babylon.js</title>
+</head>
+<body>
+    <h1>Teste de Carregamento GLB</h1>
+    <button id="createCube">Criar Cubo GLB Simples</button>
+    <input type="file" id="testFile" accept=".glb,.gltf">
+    <div id="info"></div>
+    <canvas id="canvas" width="800" height="600"></canvas>
+
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const engine = new BABYLON.Engine(canvas, true);
+        const scene = new BABYLON.Scene(engine);
+        
+        // Setup básico da cena
+        const camera = new BABYLON.ArcRotateCamera('camera', 0, Math.PI/3, 10, BABYLON.Vector3.Zero(), scene);
+        camera.attachControl(canvas, true);
+        const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0, 1, 0), scene);
+        
+        engine.runRenderLoop(() => scene.render());
+        
+        // Teste de carregamento de arquivo
+        document.getElementById('testFile').onchange = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const info = document.getElementById('info');
+            info.innerHTML = `Testando arquivo: ${file.name} (${(file.size/1024).toFixed(1)} KB)<br>`;
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const arrayBuffer = event.target.result;
+                
+                // Verificar magic number para GLB
+                if (file.name.toLowerCase().endsWith('.glb')) {
+                    const dataView = new DataView(arrayBuffer);
+                    const magic = dataView.getUint32(0, true);
+                    info.innerHTML += `Magic number: 0x${magic.toString(16)} (esperado: 0x46546c67)<br>`;
+                    
+                    if (magic !== 0x46546C67) {
+                        info.innerHTML += '❌ Arquivo GLB inválido!<br>';
+                        return;
+                    } else {
+                        info.innerHTML += '✅ Magic number correto<br>';
+                    }
+                }
+                
+                const blob = new Blob([arrayBuffer], { 
+                    type: file.name.toLowerCase().endsWith('.glb') ? 'model/gltf-binary' : 'model/gltf+json' 
+                });
+                const url = URL.createObjectURL(blob);
+                
+                BABYLON.SceneLoader.ImportMeshAsync("", "", url, scene).then(result => {
+                    info.innerHTML += `✅ Carregado com sucesso! ${result.meshes.length} meshes encontrados<br>`;
+                    result.meshes.forEach((mesh, i) => {
+                        info.innerHTML += `Mesh ${i}: ${mesh.name}<br>`;
+                    });
+                    URL.revokeObjectURL(url);
+                }).catch(error => {
+                    info.innerHTML += `❌ Erro: ${error.message}<br>`;
+                    console.error(error);
+                    URL.revokeObjectURL(url);
+                });
+            };
+            
+            reader.readAsArrayBuffer(file);
+        };
+        
+        // Criar cubo simples para download (funcionalidade de teste)
+        document.getElementById('createCube').onclick = function() {
+            const box = BABYLON.MeshBuilder.CreateBox('testCube', { size: 2 }, scene);
+            box.position.y = 1;
+            
+            // Exportar como GLB seria complexo, então vamos apenas mostrar que o sistema funciona
+            document.getElementById('info').innerHTML = 'Cubo criado na cena. Use arquivos GLB válidos para testar o carregamento.';
+        };
+    </script>
+</body>
+</html>
