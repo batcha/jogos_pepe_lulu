@@ -168,6 +168,333 @@
 			font-size: 0.7rem;
 			color: #888;
 		}
+
+		/* Context Menu Styles */
+		.context-menu {
+			position: fixed;
+			background: #2a2a2a;
+			border: 1px solid #444;
+			border-radius: 4px;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+			z-index: 9999;
+			min-width: 150px;
+			display: none;
+		}
+
+		.context-menu-item {
+			padding: 8px 16px;
+			cursor: pointer;
+			color: #fff;
+			font-size: 12px;
+			border-bottom: 1px solid #333;
+		}
+
+		.context-menu-item:last-child {
+			border-bottom: none;
+		}
+
+		.context-menu-item:hover {
+			background: #444;
+		}
+
+		.context-menu-item.disabled {
+			color: #666;
+			cursor: not-allowed;
+		}
+
+		.context-menu-item.disabled:hover {
+			background: transparent;
+		}
+
+		.context-menu-separator {
+			height: 1px;
+			background: #333;
+			margin: 4px 0;
+		}
+
+		/* Properties Panel Styles */
+		.properties-panel {
+			position: fixed;
+			top: 20px;
+			right: 300px;
+			width: 320px;
+			max-height: 80vh;
+			background: #2a2a2a;
+			border: 1px solid #444;
+			border-radius: 8px;
+			box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+			z-index: 1000;
+			display: none;
+			overflow-y: auto;
+		}
+
+		.properties-header {
+			background: #333;
+			padding: 12px;
+			border-bottom: 1px solid #444;
+			border-radius: 8px 8px 0 0;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+		.properties-title {
+			color: #fff;
+			font-weight: bold;
+			font-size: 14px;
+		}
+
+		.properties-close {
+			background: none;
+			border: none;
+			color: #fff;
+			cursor: pointer;
+			padding: 4px;
+			border-radius: 4px;
+		}
+
+		.properties-close:hover {
+			background: #555;
+		}
+
+		.properties-content {
+			padding: 16px;
+		}
+
+		.property-group {
+			margin-bottom: 20px;
+		}
+
+		.property-group-title {
+			color: #ccc;
+			font-size: 12px;
+			font-weight: bold;
+			margin-bottom: 8px;
+			text-transform: uppercase;
+			border-bottom: 1px solid #444;
+			padding-bottom: 4px;
+		}
+
+		.property-row {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 8px;
+		}
+
+		.property-label {
+			color: #fff;
+			font-size: 12px;
+			min-width: 80px;
+		}
+
+		.property-input {
+			background: #333;
+			border: 1px solid #555;
+			color: #fff;
+			padding: 4px 8px;
+			border-radius: 4px;
+			font-size: 12px;
+			width: 100px;
+		}
+
+		.property-input:focus {
+			border-color: #007acc;
+			outline: none;
+		}
+
+		.property-checkbox {
+			margin: 0;
+		}
+
+		.property-color {
+			width: 30px;
+			height: 20px;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+		}
+
+		/* Camera Bookmarks */
+		.bookmark-item {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 6px 12px;
+			background: #333;
+			border-radius: 4px;
+			margin-bottom: 4px;
+		}
+
+		.bookmark-name {
+			color: #fff;
+			font-size: 12px;
+			flex-grow: 1;
+		}
+
+		.bookmark-buttons {
+			display: flex;
+			gap: 4px;
+		}
+
+		.bookmark-btn {
+			background: #555;
+			border: none;
+			color: #fff;
+			padding: 2px 6px;
+			border-radius: 3px;
+			cursor: pointer;
+			font-size: 10px;
+		}
+
+		.bookmark-btn:hover {
+			background: #666;
+		}
+
+		.bookmark-btn.delete {
+			background: #d73a49;
+		}
+
+		.bookmark-btn.delete:hover {
+			background: #e85d7a;
+		}
+
+		/* Toast notifications */
+		.toast {
+			position: fixed;
+			top: 20px;
+			left: 50%;
+			transform: translateX(-50%);
+			background: #333;
+			color: #fff;
+			padding: 12px 20px;
+			border-radius: 6px;
+			border-left: 4px solid #007acc;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+			z-index: 10000;
+			display: none;
+			font-size: 14px;
+		}
+
+		.toast.success {
+			border-left-color: #28a745;
+		}
+
+		.toast.error {
+			border-left-color: #dc3545;
+		}
+
+		.toast.warning {
+			border-left-color: #ffc107;
+		}
+
+		/* Modal Styles */
+		.modal {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: rgba(0, 0, 0, 0.7);
+			display: none;
+			justify-content: center;
+			align-items: center;
+			z-index: 10001;
+		}
+
+		.modal-content {
+			background: #2a2a2a;
+			border: 1px solid #444;
+			border-radius: 8px;
+			box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+			padding: 20px;
+			min-width: 300px;
+			max-width: 500px;
+		}
+
+		.modal-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 16px;
+			border-bottom: 1px solid #444;
+			padding-bottom: 8px;
+		}
+
+		.modal-title {
+			color: #fff;
+			font-weight: bold;
+			font-size: 16px;
+		}
+
+		.modal-close {
+			background: none;
+			border: none;
+			color: #fff;
+			cursor: pointer;
+			padding: 4px;
+			border-radius: 4px;
+			font-size: 18px;
+		}
+
+		.modal-close:hover {
+			background: #555;
+		}
+
+		.modal-body {
+			margin-bottom: 16px;
+		}
+
+		.modal-footer {
+			display: flex;
+			justify-content: flex-end;
+			gap: 8px;
+		}
+
+		.modal-input {
+			background: #333;
+			border: 1px solid #555;
+			color: #fff;
+			padding: 8px 12px;
+			border-radius: 4px;
+			font-size: 14px;
+			width: 100%;
+			margin-bottom: 8px;
+		}
+
+		.modal-input:focus {
+			border-color: #007acc;
+			outline: none;
+		}
+
+		.modal-label {
+			color: #ccc;
+			font-size: 12px;
+			margin-bottom: 4px;
+			display: block;
+		}
+
+		.modal-btn {
+			background: #007acc;
+			color: #fff;
+			border: none;
+			padding: 8px 16px;
+			border-radius: 4px;
+			cursor: pointer;
+			font-size: 14px;
+		}
+
+		.modal-btn:hover {
+			background: #005a9e;
+		}
+
+		.modal-btn.secondary {
+			background: #666;
+		}
+
+		.modal-btn.secondary:hover {
+			background: #777;
+		}
 	</style>
 </head>
 <body>
@@ -182,6 +509,26 @@
 			<button class="btn" id="add-sphere">⚪ Esfera</button>
 			<button class="btn" id="add-plane">🟦 Plano</button>
 		</div>
+
+		<!-- FASE 2: Criação Avançada -->
+		<div class="section">
+			<h3>🎨 Avançado</h3>
+			<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px;">
+				<button class="btn" id="add-cylinder" title="Cilindro">🛢️</button>
+				<button class="btn" id="add-cone" title="Cone">🔻</button>
+				<button class="btn" id="add-torus" title="Torus">🍩</button>
+				<button class="btn" id="add-stairs" title="Escadas">🪜</button>
+			</div>
+			<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px;">
+				<button class="btn" id="array-tool" title="Array Tool" style="font-size:0.8rem;">📐 Array</button>
+				<button class="btn" id="mirror-tool" title="Mirror Tool" style="font-size:0.8rem;">🪞 Mirror</button>
+			</div>
+			<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;">
+				<button class="btn" id="csg-union" title="CSG Union" style="font-size:0.75rem;">⚬ Un</button>
+				<button class="btn" id="csg-subtract" title="CSG Subtract" style="font-size:0.75rem;">⚬ Sub</button>
+				<button class="btn" id="csg-intersect" title="CSG Intersect" style="font-size:0.75rem;">⚬ Int</button>
+			</div>
+		</div>
 		
 		<!-- Gizmos -->
 		<div class="section">
@@ -191,6 +538,49 @@
 				<button class="btn" id="gizmo-rotate" title="Rotate (R)">🔄</button>
 				<button class="btn" id="gizmo-scale" title="Scale (S)">📏</button>
 			</div>
+		</div>
+		
+		<!-- FASE 2: Ferramentas de Precisão -->
+		<div class="section">
+			<h3>📐 Precisão</h3>
+			<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px;">
+				<button class="btn" id="toggle-grid" title="Toggle Grid">📏</button>
+				<button class="btn" id="toggle-snap" title="Toggle Snap">🧲</button>
+			</div>
+			<div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
+				<label style="font-size:0.8rem;color:#ccc;">Grid:</label>
+				<input type="number" id="grid-size" value="1" step="0.5" min="0.1" max="5" 
+					   style="width:50px;padding:2px;background:#333;color:#fff;border:1px solid #555;border-radius:2px;font-size:0.75rem;">
+			</div>
+			<button class="btn" id="measurement-tool" title="Measurement Tool" style="font-size:0.8rem;">📏 Medir</button>
+		</div>
+		
+		<!-- FASE 2: Alinhamento -->
+		<div class="section">
+			<h3>🎯 Alinhar</h3>
+			<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-bottom:4px;">
+				<button class="btn" id="align-left" title="Align Left" style="font-size:0.7rem;">⬅️</button>
+				<button class="btn" id="align-center-x" title="Center X" style="font-size:0.7rem;">📍</button>
+				<button class="btn" id="align-right" title="Align Right" style="font-size:0.7rem;">➡️</button>
+			</div>
+			<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;">
+				<button class="btn" id="distribute-x" title="Distribute X" style="font-size:0.7rem;">↔️ X</button>
+				<button class="btn" id="distribute-z" title="Distribute Z" style="font-size:0.7rem;">↔️ Z</button>
+			</div>
+		</div>
+		
+		<!-- FASE 2: Visualização -->
+		<div class="section">
+			<h3>👁️ Vista</h3>
+			<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:4px;">
+				<button class="btn" id="view-perspective" title="Perspective" style="font-size:0.7rem;">🎭</button>
+				<button class="btn" id="view-top" title="Top View" style="font-size:0.7rem;">⬆️</button>
+			</div>
+			<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:4px;">
+				<button class="btn" id="view-front" title="Front View" style="font-size:0.7rem;">🔲</button>
+				<button class="btn" id="view-side" title="Side View" style="font-size:0.7rem;">📱</button>
+			</div>
+			<button class="btn" id="toggle-wireframe" title="Toggle Wireframe" style="font-size:0.8rem;">🔗 Wire</button>
 		</div>
 		
 		<!-- Assets do Projeto -->
@@ -263,6 +653,16 @@
 			<h3 style="margin:0 0 8px 0;font-size:0.9rem;color:#ccc;">📋 Objetos na Cena</h3>
 			<ul id="object-list"></ul>
 		</div>
+
+		<!-- Camera Bookmarks -->
+		<div class="section" style="margin-top:12px;">
+			<h3>📷 Camera Bookmarks</h3>
+			<div style="display:flex;gap:4px;margin-bottom:8px;">
+				<input type="text" id="bookmark-name" placeholder="Nome da view..." style="flex:1;padding:4px;background:#333;color:#fff;border:1px solid #555;border-radius:4px;font-size:0.8rem;">
+				<button class="btn" id="save-bookmark" style="font-size:0.8rem;padding:4px 8px;">💾</button>
+			</div>
+			<div id="bookmarks-list" style="max-height:100px;overflow-y:auto;"></div>
+		</div>
 	</div>
 	
 	<!-- Área de Renderização -->
@@ -300,16 +700,106 @@
  			<!-- Coluna 3: Atalhos e Referência -->
  			<div style="flex:1;min-width:180px;padding:8px;background:#1e1e1e;border-radius:6px;">
  				<h4 style="margin:0 0 8px 0;color:#FF9800;font-size:0.95rem;">⌨️ Atalhos</h4>
- 				<div style="font-size:0.75rem;color:#888;line-height:1.3;">
+ 				<div style="font-size:0.72rem;color:#888;line-height:1.2;">
  					<div><strong>G:</strong> Mover | <strong>R:</strong> Girar | <strong>S:</strong> Escalar</div>
  					<div><strong>H:</strong> Ocultar | <strong>Ctrl+D:</strong> Duplicar</div>
  					<div><strong>Del:</strong> Deletar | <strong>ESC:</strong> Deselecionar</div>
  					<div><strong>Ctrl+Click:</strong> Multi-seleção</div>
+ 					<hr style="margin:4px 0;border:none;border-top:1px solid #444;">
+ 					<div style="color:#4CAF50;"><strong>FASE 2:</strong></div>
+ 					<div><strong>M:</strong> Medir | <strong>Ctrl+G:</strong> Grid</div>
+ 					<div><strong>Ctrl+W:</strong> Wireframe | <strong>1/3/7/5:</strong> Views</div>
  				</div>
  			</div>
  		</div>
 	</div>
-	
+
+	<!-- Context Menu -->
+	<div id="context-menu" class="context-menu">
+		<div class="context-menu-item" data-action="properties">⚙️ Properties</div>
+		<div class="context-menu-separator"></div>
+		<div class="context-menu-item" data-action="duplicate">📋 Duplicate</div>
+		<div class="context-menu-item" data-action="group">👥 Group</div>
+		<div class="context-menu-separator"></div>
+		<div class="context-menu-item" data-action="hide">👁️ Hide</div>
+		<div class="context-menu-item" data-action="lock">🔒 Lock</div>
+		<div class="context-menu-separator"></div>
+		<div class="context-menu-item" data-action="delete">🗑️ Delete</div>
+	</div>
+
+	<!-- Properties Panel -->
+	<div id="properties-panel" class="properties-panel">
+		<div class="properties-header">
+			<div class="properties-title">⚙️ Properties</div>
+			<button class="properties-close" onclick="hidePropertiesPanel()">✕</button>
+		</div>
+		<div class="properties-content" id="properties-content">
+			<!-- Conteúdo dinâmico -->
+		</div>
+	</div>
+
+	<!-- Toast Notifications -->
+	<div id="toast" class="toast"></div>
+
+	<!-- Array Tool Modal -->
+	<div id="array-modal" class="modal">
+		<div class="modal-content">
+			<div class="modal-header">
+				<div class="modal-title">📐 Array Tool</div>
+				<button class="modal-close" onclick="hideModal('array-modal')">✕</button>
+			</div>
+			<div class="modal-body">
+				<label class="modal-label">Quantidade:</label>
+				<input type="number" id="array-count" class="modal-input" value="3" min="2" max="20">
+				
+				<label class="modal-label">Espaçamento X:</label>
+				<input type="number" id="array-spacing-x" class="modal-input" value="2" step="0.1">
+				
+				<label class="modal-label">Espaçamento Y:</label>
+				<input type="number" id="array-spacing-y" class="modal-input" value="0" step="0.1">
+				
+				<label class="modal-label">Espaçamento Z:</label>
+				<input type="number" id="array-spacing-z" class="modal-input" value="0" step="0.1">
+			</div>
+			<div class="modal-footer">
+				<button class="modal-btn secondary" onclick="hideModal('array-modal')">Cancelar</button>
+				<button class="modal-btn" onclick="executeArrayTool()">Aplicar</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Mirror Tool Modal -->
+	<div id="mirror-modal" class="modal">
+		<div class="modal-content">
+			<div class="modal-header">
+				<div class="modal-title">🪞 Mirror Tool</div>
+				<button class="modal-close" onclick="hideModal('mirror-modal')">✕</button>
+			</div>
+			<div class="modal-body">
+				<label class="modal-label">Eixo de espelhamento:</label>
+				<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+					<label style="display:flex;align-items:center;gap:4px;color:#fff;">
+						<input type="radio" name="mirror-axis" value="x" checked> X
+					</label>
+					<label style="display:flex;align-items:center;gap:4px;color:#fff;">
+						<input type="radio" name="mirror-axis" value="y"> Y
+					</label>
+					<label style="display:flex;align-items:center;gap:4px;color:#fff;">
+						<input type="radio" name="mirror-axis" value="z"> Z
+					</label>
+				</div>
+				
+				<label style="display:flex;align-items:center;gap:8px;color:#fff;margin-bottom:8px;">
+					<input type="checkbox" id="mirror-remove-original"> Remover original
+				</label>
+			</div>
+			<div class="modal-footer">
+				<button class="modal-btn secondary" onclick="hideModal('mirror-modal')">Cancelar</button>
+				<button class="modal-btn" onclick="executeMirrorTool()">Aplicar</button>
+			</div>
+		</div>
+	</div>
+
 	<script src="https://cdn.babylonjs.com/babylon.js"></script>
 	<script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
 	<script src="./main.js"></script>

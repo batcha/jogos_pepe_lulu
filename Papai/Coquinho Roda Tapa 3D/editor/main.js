@@ -16,6 +16,39 @@ window.addEventListener('DOMContentLoaded', function () {
     var keyPressed = {}; // Controle de teclas pressionadas
     var transformMode = null; // 'move', 'rotate', 'scale'
     var axisLock = null; // 'x', 'y', 'z'
+    
+    // FASE 2: Variáveis para ferramentas de precisão
+    var gridEnabled = true;
+    var gridSize = 1.0;
+    var snapEnabled = false;
+    var snapToGrid = true;
+    var snapToObjects = false;
+    var measurementMode = false;
+    var measurementStart = null;
+    var measurementLine = null;
+    var alignMode = false;
+    var viewportMode = 'perspective'; // perspective, top, front, side
+    var wireframeMode = false;
+    
+    // Grid helper mesh
+    var gridHelper = null;
+
+    // FASE 2: Interface Avançada
+    var cameraBookmarks = [];
+    var currentContextMenuTarget = null;
+    var propertiesPanelVisible = false;
+
+    // FASE 2: Criação Avançada
+    var arrayToolSettings = {
+        count: 3,
+        spacingX: 2,
+        spacingY: 0,
+        spacingZ: 0
+    };
+    var mirrorToolSettings = {
+        axis: 'x',
+        removeOriginal: false
+    };
 
     // Função para atualizar campos da bottom bar
     function updateBottomBar() {
@@ -332,6 +365,9 @@ window.addEventListener('DOMContentLoaded', function () {
     // Gizmo Manager
     gizmoManager = new BABYLON.GizmoManager(scene);
     updateGizmoMode(gizmoMode);
+    
+    // FASE 2: Criar grid visual
+    createGridHelper();
 
     // Função para atualizar lista lateral com outliner avançado
     function updateObjectList() {
@@ -468,6 +504,125 @@ window.addEventListener('DOMContentLoaded', function () {
         };
     }
 
+    // FASE 2: Criação Avançada - Novos Primitivos
+    const addCylinderBtn = document.getElementById('add-cylinder');
+    if (addCylinderBtn) {
+        addCylinderBtn.onclick = function() {
+            var cylinder = BABYLON.MeshBuilder.CreateCylinder('cylinder_' + objectList.length, { 
+                diameter: 2, 
+                height: 3 
+            }, scene);
+            cylinder.position.y = 1.5;
+            var mat = new BABYLON.StandardMaterial('mat', scene);
+            mat.diffuseColor = new BABYLON.Color3(0.8, 0.5, 0.2);
+            cylinder.material = mat;
+            objectList.push({ 
+                name: cylinder.name, 
+                mesh: cylinder, 
+                type: 'Cilindro', 
+                selected: false,
+                visible: true,
+                locked: false,
+                layer: 'geometry',
+                props: { movel: false, perigo: false, plataforma: false, decorativo: true }
+            });
+            updateObjectList();
+            showToast('Cilindro criado!', 'success');
+        };
+    }
+
+    const addConeBtn = document.getElementById('add-cone');
+    if (addConeBtn) {
+        addConeBtn.onclick = function() {
+            var cone = BABYLON.MeshBuilder.CreateCylinder('cone_' + objectList.length, { 
+                diameterTop: 0, 
+                diameterBottom: 2, 
+                height: 3 
+            }, scene);
+            cone.position.y = 1.5;
+            var mat = new BABYLON.StandardMaterial('mat', scene);
+            mat.diffuseColor = new BABYLON.Color3(0.9, 0.3, 0.5);
+            cone.material = mat;
+            objectList.push({ 
+                name: cone.name, 
+                mesh: cone, 
+                type: 'Cone', 
+                selected: false,
+                visible: true,
+                locked: false,
+                layer: 'geometry',
+                props: { movel: false, perigo: false, plataforma: false, decorativo: true }
+            });
+            updateObjectList();
+            showToast('Cone criado!', 'success');
+        };
+    }
+
+    const addTorusBtn = document.getElementById('add-torus');
+    if (addTorusBtn) {
+        addTorusBtn.onclick = function() {
+            var torus = BABYLON.MeshBuilder.CreateTorus('torus_' + objectList.length, { 
+                diameter: 3, 
+                thickness: 0.5 
+            }, scene);
+            torus.position.y = 1.5;
+            var mat = new BABYLON.StandardMaterial('mat', scene);
+            mat.diffuseColor = new BABYLON.Color3(0.6, 0.8, 0.4);
+            torus.material = mat;
+            objectList.push({ 
+                name: torus.name, 
+                mesh: torus, 
+                type: 'Torus', 
+                selected: false,
+                visible: true,
+                locked: false,
+                layer: 'geometry',
+                props: { movel: false, perigo: false, plataforma: false, decorativo: true }
+            });
+            updateObjectList();
+            showToast('Torus criado!', 'success');
+        };
+    }
+
+    const addStairsBtn = document.getElementById('add-stairs');
+    if (addStairsBtn) {
+        addStairsBtn.onclick = function() {
+            // Criar escada como grupo de cubos
+            var stairGroup = new BABYLON.TransformNode('stairs_' + objectList.length, scene);
+            stairGroup.position.y = 0;
+            
+            var mat = new BABYLON.StandardMaterial('stairMat', scene);
+            mat.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.5);
+            
+            // Criar 5 degraus
+            for (let i = 0; i < 5; i++) {
+                var step = BABYLON.MeshBuilder.CreateBox('step_' + i, { 
+                    width: 2, 
+                    height: 0.2, 
+                    depth: 0.4 
+                }, scene);
+                step.position.x = 0;
+                step.position.y = i * 0.2 + 0.1;
+                step.position.z = i * 0.4;
+                step.material = mat;
+                step.parent = stairGroup;
+            }
+            
+            objectList.push({ 
+                name: stairGroup.name, 
+                mesh: stairGroup, 
+                type: 'Escadas', 
+                selected: false,
+                visible: true,
+                locked: false,
+                layer: 'geometry',
+                props: { movel: false, perigo: false, plataforma: true, decorativo: false }
+            });
+            updateObjectList();
+            showToast('Escadas criadas!', 'success');
+        };
+    }
+
     // Sistema de seleção múltipla
     function selectObject(index) {
         // Limpar seleção anterior
@@ -544,6 +699,14 @@ window.addEventListener('DOMContentLoaded', function () {
         try {
             if (gizmoManager.gizmos.positionGizmo && !gizmoManager.gizmos.positionGizmo._observerSetup) {
                 gizmoManager.gizmos.positionGizmo.onDragEndObservable.add(() => {
+                    // FASE 2: Aplicar snap após movimentação
+                    if (snapEnabled && selectedIndices.length === 1) {
+                        const obj = objectList[selectedIndices[0]];
+                        if (obj && obj.mesh) {
+                            const snappedPos = applySnap(obj.mesh.position);
+                            obj.mesh.position.copyFrom(snappedPos);
+                        }
+                    }
                     updateObjectProperties();
                 });
                 gizmoManager.gizmos.positionGizmo._observerSetup = true;
@@ -573,6 +736,24 @@ window.addEventListener('DOMContentLoaded', function () {
     scene.onPointerObservable.add(function(pointerInfo) {
         if (pointerInfo.pickInfo.hit && pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN) {
             const pickedMesh = pointerInfo.pickInfo.pickedMesh;
+            const pickedPoint = pointerInfo.pickInfo.pickedPoint;
+            
+            // FASE 2: Modo de medição tem prioridade
+            if (measurementMode && pickedPoint) {
+                if (!measurementStart) {
+                    measurementStart = pickedPoint.clone();
+                    console.log('Primeiro ponto de medição selecionado');
+                } else {
+                    createMeasurementLine(measurementStart, pickedPoint);
+                    measurementMode = false;
+                    measurementStart = null;
+                    // Atualizar botão visual
+                    const measureBtn = document.getElementById('measurement-tool');
+                    if (measureBtn) measureBtn.style.background = '#34495e';
+                }
+                return;
+            }
+            
             if (pickedMesh) {
                 console.log('Mesh clicada:', pickedMesh.name, 'ID:', pickedMesh.id);
                 
@@ -689,6 +870,49 @@ window.addEventListener('DOMContentLoaded', function () {
         // Delete
         if (e.key === 'Delete' || e.key === 'x') {
             deleteSelected();
+            e.preventDefault();
+        }
+        
+        // FASE 2: Novos hotkeys
+        // Toggle Grid (Ctrl+G)
+        if (e.ctrlKey && (e.key === 'g' || e.key === 'G')) {
+            toggleGrid();
+            e.preventDefault();
+        }
+        
+        // Toggle Snap (Ctrl+Shift+S)
+        if (e.ctrlKey && e.shiftKey && (e.key === 's' || e.key === 'S')) {
+            toggleSnap();
+            e.preventDefault();
+        }
+        
+        // Measurement tool (M)
+        if (e.key === 'm' || e.key === 'M') {
+            startMeasurement();
+            e.preventDefault();
+        }
+        
+        // Toggle Wireframe (Ctrl+W)
+        if (e.ctrlKey && (e.key === 'w' || e.key === 'W')) {
+            toggleWireframe();
+            e.preventDefault();
+        }
+        
+        // Views (numpad)
+        if (e.key === '1') {
+            setViewportMode('front');
+            e.preventDefault();
+        }
+        if (e.key === '3') {
+            setViewportMode('side');
+            e.preventDefault();
+        }
+        if (e.key === '7') {
+            setViewportMode('top');
+            e.preventDefault();
+        }
+        if (e.key === '5') {
+            setViewportMode('perspective');
             e.preventDefault();
         }
         
@@ -986,6 +1210,93 @@ window.addEventListener('DOMContentLoaded', function () {
                 const layer = layerSelect.value;
                 selectedIndices.forEach(idx => setObjectLayer(idx, layer));
             }
+        };
+    }
+    
+    // FASE 2: Event listeners para ferramentas de precisão
+    const toggleGridBtn = document.getElementById('toggle-grid');
+    if (toggleGridBtn) {
+        toggleGridBtn.onclick = function() {
+            toggleGrid();
+            this.style.background = gridEnabled ? '#27ae60' : '#34495e';
+        };
+    }
+    
+    const toggleSnapBtn = document.getElementById('toggle-snap');
+    if (toggleSnapBtn) {
+        toggleSnapBtn.onclick = function() {
+            toggleSnap();
+            this.style.background = snapEnabled ? '#27ae60' : '#34495e';
+        };
+    }
+    
+    const gridSizeInput = document.getElementById('grid-size');
+    if (gridSizeInput) {
+        gridSizeInput.onchange = function() {
+            setGridSize(this.value);
+        };
+    }
+    
+    const measurementBtn = document.getElementById('measurement-tool');
+    if (measurementBtn) {
+        measurementBtn.onclick = function() {
+            startMeasurement();
+            this.style.background = measurementMode ? '#e74c3c' : '#34495e';
+        };
+    }
+    
+    // Ferramentas de alinhamento
+    const alignLeftBtn = document.getElementById('align-left');
+    if (alignLeftBtn) {
+        alignLeftBtn.onclick = () => alignObjects('left');
+    }
+    
+    const alignCenterXBtn = document.getElementById('align-center-x');
+    if (alignCenterXBtn) {
+        alignCenterXBtn.onclick = () => alignObjects('center-x');
+    }
+    
+    const alignRightBtn = document.getElementById('align-right');
+    if (alignRightBtn) {
+        alignRightBtn.onclick = () => alignObjects('right');
+    }
+    
+    const distributeXBtn = document.getElementById('distribute-x');
+    if (distributeXBtn) {
+        distributeXBtn.onclick = () => distributeObjects('x');
+    }
+    
+    const distributeZBtn = document.getElementById('distribute-z');
+    if (distributeZBtn) {
+        distributeZBtn.onclick = () => distributeObjects('z');
+    }
+    
+    // Controles de visualização
+    const viewPerspectiveBtn = document.getElementById('view-perspective');
+    if (viewPerspectiveBtn) {
+        viewPerspectiveBtn.onclick = () => setViewportMode('perspective');
+    }
+    
+    const viewTopBtn = document.getElementById('view-top');
+    if (viewTopBtn) {
+        viewTopBtn.onclick = () => setViewportMode('top');
+    }
+    
+    const viewFrontBtn = document.getElementById('view-front');
+    if (viewFrontBtn) {
+        viewFrontBtn.onclick = () => setViewportMode('front');
+    }
+    
+    const viewSideBtn = document.getElementById('view-side');
+    if (viewSideBtn) {
+        viewSideBtn.onclick = () => setViewportMode('side');
+    }
+    
+    const toggleWireframeBtn = document.getElementById('toggle-wireframe');
+    if (toggleWireframeBtn) {
+        toggleWireframeBtn.onclick = function() {
+            toggleWireframe();
+            this.style.background = wireframeMode ? '#e74c3c' : '#34495e';
         };
     }
 
@@ -1344,6 +1655,16 @@ window.addEventListener('DOMContentLoaded', function () {
             window.updateObjectColor = updateObjectColor;
             window.deleteSelectedObjects = deleteSelectedObjects;
             
+            // FASE 2: Expor funções de precisão
+            window.toggleGrid = toggleGrid;
+            window.toggleSnap = toggleSnap;
+            window.setGridSize = setGridSize;
+            window.startMeasurement = startMeasurement;
+            window.alignObjects = alignObjects;
+            window.distributeObjects = distributeObjects;
+            window.setViewportMode = setViewportMode;
+            window.toggleWireframe = toggleWireframe;
+            
             console.log(`✅ Assets browser renderizado com ${assets.length} modelos em ${Object.keys(categories).length} categorias`);
         });
     }
@@ -1383,6 +1704,932 @@ window.addEventListener('DOMContentLoaded', function () {
 
     // Inicializar UI
     updateObjectList();
+    
+    // ============================================================================
+    // FASE 2: FERRAMENTAS DE PRECISÃO
+    // ============================================================================
+    
+    // Função para criar grid visual
+    function createGridHelper() {
+        if (gridHelper) {
+            gridHelper.dispose();
+        }
+        
+        const size = 50;
+        const divisions = size / gridSize;
+        
+        // Criar linhas do grid
+        const points = [];
+        const colors = [];
+        
+        // Linhas paralelas ao eixo X
+        for (let i = 0; i <= divisions; i++) {
+            const y = (i - divisions/2) * gridSize;
+            points.push([
+                new BABYLON.Vector3(-size/2, 0.01, y),
+                new BABYLON.Vector3(size/2, 0.01, y)
+            ]);
+            
+            // Linha central mais visível
+            const color = (i === divisions/2) ? new BABYLON.Color3(0.7, 0.7, 0.7) : new BABYLON.Color3(0.3, 0.3, 0.3);
+            colors.push([color, color]);
+        }
+        
+        // Linhas paralelas ao eixo Z
+        for (let i = 0; i <= divisions; i++) {
+            const x = (i - divisions/2) * gridSize;
+            points.push([
+                new BABYLON.Vector3(x, 0.01, -size/2),
+                new BABYLON.Vector3(x, 0.01, size/2)
+            ]);
+            
+            const color = (i === divisions/2) ? new BABYLON.Color3(0.7, 0.7, 0.7) : new BABYLON.Color3(0.3, 0.3, 0.3);
+            colors.push([color, color]);
+        }
+        
+        gridHelper = BABYLON.MeshBuilder.CreateLineSystem("grid", {lines: points, colors: colors}, scene);
+        gridHelper.isPickable = false;
+        gridHelper.setEnabled(gridEnabled);
+    }
+    
+    // Função para aplicar snap a uma posição
+    function applySnap(position) {
+        if (!snapEnabled) return position;
+        
+        const snappedPos = position.clone();
+        
+        if (snapToGrid) {
+            snappedPos.x = Math.round(position.x / gridSize) * gridSize;
+            snappedPos.z = Math.round(position.z / gridSize) * gridSize;
+            // Y pode ser snapped para incrementos menores
+            snappedPos.y = Math.round(position.y / (gridSize / 2)) * (gridSize / 2);
+        }
+        
+        if (snapToObjects) {
+            // Encontrar objetos próximos para snap
+            const snapDistance = gridSize * 0.5;
+            for (const obj of objectList) {
+                if (obj.mesh && obj.mesh.position) {
+                    const distance = BABYLON.Vector3.Distance(position, obj.mesh.position);
+                    if (distance < snapDistance) {
+                        return obj.mesh.position.clone();
+                    }
+                }
+            }
+        }
+        
+        return snappedPos;
+    }
+    
+    // Função para medir distância entre dois pontos
+    function startMeasurement() {
+        measurementMode = true;
+        measurementStart = null;
+        if (measurementLine) {
+            measurementLine.dispose();
+            measurementLine = null;
+        }
+        console.log('Modo medição ativado - clique em dois pontos');
+    }
+    
+    function createMeasurementLine(start, end) {
+        if (measurementLine) {
+            measurementLine.dispose();
+        }
+        
+        const points = [start, end];
+        measurementLine = BABYLON.MeshBuilder.CreateLines("measurement", {points: points}, scene);
+        measurementLine.color = new BABYLON.Color3(1, 1, 0); // Amarelo
+        measurementLine.isPickable = false;
+        
+        // Calcular e exibir distância
+        const distance = BABYLON.Vector3.Distance(start, end);
+        console.log(`Distância: ${distance.toFixed(2)} unidades`);
+        
+        // Criar texto 3D da medida (opcional)
+        const midPoint = BABYLON.Vector3.Center(start, end);
+        midPoint.y += 1;
+    }
+    
+    // Função para alinhar objetos selecionados
+    function alignObjects(alignType) {
+        if (selectedIndices.length < 2) {
+            alert('Selecione pelo menos 2 objetos para alinhar');
+            return;
+        }
+        
+        const objects = selectedIndices.map(i => objectList[i]).filter(obj => obj && obj.mesh);
+        if (objects.length < 2) return;
+        
+        // Usar o primeiro objeto como referência
+        const reference = objects[0].mesh.position;
+        
+        objects.slice(1).forEach(obj => {
+            switch (alignType) {
+                case 'left': // Alinhar X
+                    obj.mesh.position.x = reference.x;
+                    break;
+                case 'center-x':
+                    // Calcular centro X de todos objetos
+                    const avgX = objects.reduce((sum, o) => sum + o.mesh.position.x, 0) / objects.length;
+                    objects.forEach(o => o.mesh.position.x = avgX);
+                    return; // Sair para não processar outros objetos
+                case 'right':
+                    // Para alinhar à direita, usar o objeto mais à direita como referência
+                    const maxX = Math.max(...objects.map(o => o.mesh.position.x));
+                    objects.forEach(o => o.mesh.position.x = maxX);
+                    return;
+                case 'top': // Alinhar Y
+                    obj.mesh.position.y = reference.y;
+                    break;
+                case 'bottom':
+                    obj.mesh.position.z = reference.z;
+                    break;
+            }
+        });
+        
+        updateObjectProperties();
+        console.log(`Objetos alinhados: ${alignType}`);
+    }
+    
+    // Função para distribuir objetos uniformemente
+    function distributeObjects(axis) {
+        if (selectedIndices.length < 3) {
+            alert('Selecione pelo menos 3 objetos para distribuir');
+            return;
+        }
+        
+        const objects = selectedIndices.map(i => objectList[i]).filter(obj => obj && obj.mesh);
+        if (objects.length < 3) return;
+        
+        // Ordenar objetos pela posição no eixo especificado
+        objects.sort((a, b) => a.mesh.position[axis] - b.mesh.position[axis]);
+        
+        const first = objects[0].mesh.position[axis];
+        const last = objects[objects.length - 1].mesh.position[axis];
+        const step = (last - first) / (objects.length - 1);
+        
+        objects.forEach((obj, index) => {
+            obj.mesh.position[axis] = first + (step * index);
+        });
+        
+        updateObjectProperties();
+        console.log(`Objetos distribuídos no eixo ${axis}`);
+    }
+    
+    // Função para alternar modo de visualização
+    function setViewportMode(mode) {
+        viewportMode = mode;
+        
+        switch (mode) {
+            case 'top':
+                camera.setTarget(BABYLON.Vector3.Zero());
+                camera.alpha = 0;
+                camera.beta = 0;
+                camera.radius = 20;
+                break;
+            case 'front':
+                camera.setTarget(BABYLON.Vector3.Zero());
+                camera.alpha = 0;
+                camera.beta = Math.PI / 2;
+                camera.radius = 20;
+                break;
+            case 'side':
+                camera.setTarget(BABYLON.Vector3.Zero());
+                camera.alpha = Math.PI / 2;
+                camera.beta = Math.PI / 2;
+                camera.radius = 20;
+                break;
+            case 'perspective':
+                camera.setTarget(BABYLON.Vector3.Zero());
+                camera.alpha = Math.PI / 2;
+                camera.beta = Math.PI / 3;
+                camera.radius = 16;
+                break;
+        }
+        
+        console.log(`Modo de visualização: ${mode}`);
+    }
+    
+    // Função para alternar wireframe
+    function toggleWireframe() {
+        wireframeMode = !wireframeMode;
+        
+        objectList.forEach(obj => {
+            if (obj.mesh && obj.mesh.material) {
+                obj.mesh.material.wireframe = wireframeMode;
+            }
+        });
+        
+        console.log(`Wireframe: ${wireframeMode ? 'ON' : 'OFF'}`);
+    }
+    
+    // Função para alternar grid
+    function toggleGrid() {
+        gridEnabled = !gridEnabled;
+        if (gridHelper) {
+            gridHelper.setEnabled(gridEnabled);
+        }
+        console.log(`Grid: ${gridEnabled ? 'ON' : 'OFF'}`);
+    }
+    
+    // Função para alterar tamanho do grid
+    function setGridSize(size) {
+        gridSize = parseFloat(size);
+        createGridHelper();
+        console.log(`Grid size: ${gridSize}`);
+    }
+    
+    // Função para alternar snap
+    function toggleSnap() {
+        snapEnabled = !snapEnabled;
+        console.log(`Snap: ${snapEnabled ? 'ON' : 'OFF'}`);
+    }
+
+    // ============================================================================
+    // FASE 2: INTERFACE AVANÇADA
+    // ============================================================================
+
+    // Context Menu Functions
+    function showContextMenu(x, y, target) {
+        currentContextMenuTarget = target;
+        const contextMenu = document.getElementById('context-menu');
+        
+        // Atualizar estado dos itens baseado na seleção
+        const items = contextMenu.querySelectorAll('.context-menu-item');
+        items.forEach(item => {
+            const action = item.getAttribute('data-action');
+            item.classList.remove('disabled');
+            
+            if (selectedIndices.length === 0 && ['duplicate', 'group', 'hide', 'lock', 'delete'].includes(action)) {
+                item.classList.add('disabled');
+            }
+        });
+        
+        contextMenu.style.left = x + 'px';
+        contextMenu.style.top = y + 'px';
+        contextMenu.style.display = 'block';
+    }
+
+    function hideContextMenu() {
+        const contextMenu = document.getElementById('context-menu');
+        contextMenu.style.display = 'none';
+        currentContextMenuTarget = null;
+    }
+
+    function handleContextMenuAction(action) {
+        hideContextMenu();
+        
+        switch(action) {
+            case 'properties':
+                showPropertiesPanel();
+                break;
+            case 'duplicate':
+                duplicateSelectedObjects();
+                break;
+            case 'group':
+                groupSelectedObjects();
+                break;
+            case 'hide':
+                hideSelectedObjects();
+                break;
+            case 'lock':
+                lockSelectedObjects();
+                break;
+            case 'delete':
+                deleteSelectedObjects();
+                break;
+        }
+    }
+
+    // Properties Panel Functions
+    function showPropertiesPanel() {
+        if (selectedIndices.length === 0) {
+            showToast('Selecione um objeto para ver suas propriedades', 'warning');
+            return;
+        }
+        
+        const panel = document.getElementById('properties-panel');
+        const content = document.getElementById('properties-content');
+        
+        // Gerar conteúdo das propriedades
+        content.innerHTML = generatePropertiesContent();
+        
+        panel.style.display = 'block';
+        propertiesPanelVisible = true;
+    }
+
+    function hidePropertiesPanel() {
+        const panel = document.getElementById('properties-panel');
+        panel.style.display = 'none';
+        propertiesPanelVisible = false;
+    }
+
+    function generatePropertiesContent() {
+        if (selectedIndices.length === 0) return '<p>Nenhum objeto selecionado</p>';
+        
+        const obj = objectList[selectedIndices[0]];
+        if (!obj) return '<p>Objeto inválido</p>';
+        
+        return `
+            <div class="property-group">
+                <div class="property-group-title">Transform</div>
+                <div class="property-row">
+                    <span class="property-label">Position X:</span>
+                    <input type="number" class="property-input" value="${obj.position.x.toFixed(2)}" 
+                           onchange="updateObjectProperty('position', 'x', this.value)">
+                </div>
+                <div class="property-row">
+                    <span class="property-label">Position Y:</span>
+                    <input type="number" class="property-input" value="${obj.position.y.toFixed(2)}" 
+                           onchange="updateObjectProperty('position', 'y', this.value)">
+                </div>
+                <div class="property-row">
+                    <span class="property-label">Position Z:</span>
+                    <input type="number" class="property-input" value="${obj.position.z.toFixed(2)}" 
+                           onchange="updateObjectProperty('position', 'z', this.value)">
+                </div>
+            </div>
+            
+            <div class="property-group">
+                <div class="property-group-title">Rotation (Degrees)</div>
+                <div class="property-row">
+                    <span class="property-label">Rotation X:</span>
+                    <input type="number" class="property-input" value="${(obj.rotation.x * 180 / Math.PI).toFixed(1)}" 
+                           onchange="updateObjectProperty('rotation', 'x', this.value * Math.PI / 180)">
+                </div>
+                <div class="property-row">
+                    <span class="property-label">Rotation Y:</span>
+                    <input type="number" class="property-input" value="${(obj.rotation.y * 180 / Math.PI).toFixed(1)}" 
+                           onchange="updateObjectProperty('rotation', 'y', this.value * Math.PI / 180)">
+                </div>
+                <div class="property-row">
+                    <span class="property-label">Rotation Z:</span>
+                    <input type="number" class="property-input" value="${(obj.rotation.z * 180 / Math.PI).toFixed(1)}" 
+                           onchange="updateObjectProperty('rotation', 'z', this.value * Math.PI / 180)">
+                </div>
+            </div>
+            
+            <div class="property-group">
+                <div class="property-group-title">Scale</div>
+                <div class="property-row">
+                    <span class="property-label">Scale X:</span>
+                    <input type="number" class="property-input" value="${obj.scaling.x.toFixed(2)}" 
+                           onchange="updateObjectProperty('scaling', 'x', this.value)">
+                </div>
+                <div class="property-row">
+                    <span class="property-label">Scale Y:</span>
+                    <input type="number" class="property-input" value="${obj.scaling.y.toFixed(2)}" 
+                           onchange="updateObjectProperty('scaling', 'y', this.value)">
+                </div>
+                <div class="property-row">
+                    <span class="property-label">Scale Z:</span>
+                    <input type="number" class="property-input" value="${obj.scaling.z.toFixed(2)}" 
+                           onchange="updateObjectProperty('scaling', 'z', this.value)">
+                </div>
+            </div>
+            
+            <div class="property-group">
+                <div class="property-group-title">Visibility</div>
+                <div class="property-row">
+                    <span class="property-label">Visible:</span>
+                    <input type="checkbox" class="property-checkbox" ${obj.isVisible ? 'checked' : ''} 
+                           onchange="updateObjectProperty('isVisible', null, this.checked)">
+                </div>
+                <div class="property-row">
+                    <span class="property-label">Pickable:</span>
+                    <input type="checkbox" class="property-checkbox" ${obj.isPickable ? 'checked' : ''} 
+                           onchange="updateObjectProperty('isPickable', null, this.checked)">
+                </div>
+            </div>
+        `;
+    }
+
+    // Camera Bookmarks Functions
+    function saveCameraBookmark() {
+        const nameInput = document.getElementById('bookmark-name');
+        const name = nameInput.value.trim();
+        
+        if (!name) {
+            showToast('Digite um nome para o bookmark', 'warning');
+            return;
+        }
+        
+        const bookmark = {
+            name: name,
+            position: scene.activeCamera.position.clone(),
+            target: scene.activeCamera.getTarget().clone(),
+            timestamp: Date.now()
+        };
+        
+        cameraBookmarks.push(bookmark);
+        nameInput.value = '';
+        updateBookmarksList();
+        showToast(`Bookmark "${name}" salvo!`, 'success');
+    }
+
+    function loadCameraBookmark(index) {
+        if (index < 0 || index >= cameraBookmarks.length) return;
+        
+        const bookmark = cameraBookmarks[index];
+        const camera = scene.activeCamera;
+        
+        // Animação suave para a nova posição
+        BABYLON.Animation.CreateAndStartAnimation(
+            "cameraPosition", camera, "position", 30, 30,
+            camera.position, bookmark.position, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+        );
+        
+        BABYLON.Animation.CreateAndStartAnimation(
+            "cameraTarget", camera, "target", 30, 30,
+            camera.getTarget(), bookmark.target, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+        );
+        
+        showToast(`Carregado: "${bookmark.name}"`, 'success');
+    }
+
+    function deleteCameraBookmark(index) {
+        if (index < 0 || index >= cameraBookmarks.length) return;
+        
+        const name = cameraBookmarks[index].name;
+        cameraBookmarks.splice(index, 1);
+        updateBookmarksList();
+        showToast(`Bookmark "${name}" removido`, 'success');
+    }
+
+    function updateBookmarksList() {
+        const container = document.getElementById('bookmarks-list');
+        if (!container) return;
+        
+        container.innerHTML = cameraBookmarks.map((bookmark, index) => `
+            <div class="bookmark-item">
+                <span class="bookmark-name">${bookmark.name}</span>
+                <div class="bookmark-buttons">
+                    <button class="bookmark-btn" onclick="loadCameraBookmark(${index})">Go</button>
+                    <button class="bookmark-btn delete" onclick="deleteCameraBookmark(${index})">×</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Utility Functions
+    function showToast(message, type = 'info') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = `toast ${type}`;
+        toast.style.display = 'block';
+        
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 3000);
+    }
+
+    function updateObjectProperty(property, axis, value) {
+        if (selectedIndices.length === 0) return;
+        
+        selectedIndices.forEach(index => {
+            const obj = objectList[index];
+            if (!obj) return;
+            
+            if (axis) {
+                obj[property][axis] = parseFloat(value);
+            } else {
+                obj[property] = value;
+            }
+        });
+        
+        updateBottomBar();
+    }
+
+    function duplicateSelectedObjects() {
+        if (selectedIndices.length === 0) {
+            showToast('Nenhum objeto selecionado para duplicar', 'warning');
+            return;
+        }
+        
+        selectedIndices.forEach(index => {
+            const originalObj = objectList[index];
+            if (!originalObj) return;
+            
+            const newObj = originalObj.clone(originalObj.name + "_copy");
+            newObj.position.x += 2;
+            
+            objectList.push(newObj);
+        });
+        
+        updateObjectList();
+        updateBottomBar();
+        showToast(`${selectedIndices.length} objeto(s) duplicado(s)`, 'success');
+    }
+
+    function hideSelectedObjects() {
+        if (selectedIndices.length === 0) return;
+        
+        selectedIndices.forEach(index => {
+            const obj = objectList[index];
+            if (obj) obj.setEnabled(false);
+        });
+        
+        showToast(`${selectedIndices.length} objeto(s) ocultado(s)`, 'success');
+    }
+
+    function lockSelectedObjects() {
+        if (selectedIndices.length === 0) return;
+        
+        selectedIndices.forEach(index => {
+            const obj = objectList[index];
+            if (obj) obj.isPickable = false;
+        });
+        
+        showToast(`${selectedIndices.length} objeto(s) bloqueado(s)`, 'success');
+    }
+
+    function deleteSelectedObjects() {
+        if (selectedIndices.length === 0) {
+            showToast('Nenhum objeto selecionado para deletar', 'warning');
+            return;
+        }
+        
+        // Ordenar índices em ordem decrescente para remover corretamente
+        const sortedIndices = [...selectedIndices].sort((a, b) => b - a);
+        
+        sortedIndices.forEach(index => {
+            const obj = objectList[index];
+            if (obj) {
+                obj.dispose();
+                objectList.splice(index, 1);
+            }
+        });
+        
+        selectedIndices = [];
+        selectedIdx = null;
+        if (gizmoManager) {
+            gizmoManager.attachToMesh(null);
+        }
+        
+        updateObjectList();
+        updateBottomBar();
+        showToast(`${sortedIndices.length} objeto(s) deletado(s)`, 'success');
+    }
+
+    // Event Listeners para Interface Avançada
+    document.addEventListener('click', function(e) {
+        // Fechar context menu ao clicar fora
+        if (!e.target.closest('#context-menu')) {
+            hideContextMenu();
+        }
+        
+        // Fechar properties panel ao clicar fora
+        if (!e.target.closest('#properties-panel') && !e.target.closest('[data-action="properties"]')) {
+            if (propertiesPanelVisible && !e.target.closest('.btn')) {
+                hidePropertiesPanel();
+            }
+        }
+    });
+
+    // Context menu no canvas
+    canvas.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        showContextMenu(e.clientX, e.clientY, 'canvas');
+    });
+
+    // Context menu items click
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.context-menu-item')) {
+            const item = e.target.closest('.context-menu-item');
+            if (!item.classList.contains('disabled')) {
+                const action = item.getAttribute('data-action');
+                handleContextMenuAction(action);
+            }
+        }
+    });
+
+    // Camera bookmarks button
+    document.addEventListener('click', function(e) {
+        if (e.target.id === 'save-bookmark') {
+            saveCameraBookmark();
+        }
+    });
+
+    // Expor funções globalmente para uso inline
+    window.loadCameraBookmark = loadCameraBookmark;
+    window.deleteCameraBookmark = deleteCameraBookmark;
+    window.updateObjectProperty = updateObjectProperty;
+    window.hidePropertiesPanel = hidePropertiesPanel;
+
+    // ============================================================================
+    // FASE 2: CRIAÇÃO AVANÇADA
+    // ============================================================================
+
+    // Array Tool Functions
+    function showArrayTool() {
+        if (selectedIndices.length === 0) {
+            showToast('Selecione um objeto para usar o Array Tool', 'warning');
+            return;
+        }
+        showModal('array-modal');
+    }
+
+    function executeArrayTool() {
+        if (selectedIndices.length === 0) {
+            hideModal('array-modal');
+            return;
+        }
+
+        const count = parseInt(document.getElementById('array-count').value);
+        const spacingX = parseFloat(document.getElementById('array-spacing-x').value);
+        const spacingY = parseFloat(document.getElementById('array-spacing-y').value);
+        const spacingZ = parseFloat(document.getElementById('array-spacing-z').value);
+
+        selectedIndices.forEach(index => {
+            const originalObj = objectList[index];
+            if (!originalObj || !originalObj.mesh) return;
+
+            // Criar cópias em array
+            for (let i = 1; i < count; i++) {
+                const newObj = originalObj.mesh.clone(originalObj.name + "_array_" + i);
+                newObj.position.x = originalObj.mesh.position.x + (spacingX * i);
+                newObj.position.y = originalObj.mesh.position.y + (spacingY * i);
+                newObj.position.z = originalObj.mesh.position.z + (spacingZ * i);
+
+                objectList.push({
+                    name: newObj.name,
+                    mesh: newObj,
+                    type: originalObj.type,
+                    selected: false,
+                    visible: true,
+                    locked: false,
+                    layer: originalObj.layer,
+                    props: { ...originalObj.props }
+                });
+            }
+        });
+
+        updateObjectList();
+        updateBottomBar();
+        hideModal('array-modal');
+        showToast(`Array de ${count} objetos criado!`, 'success');
+    }
+
+    // Mirror Tool Functions
+    function showMirrorTool() {
+        if (selectedIndices.length === 0) {
+            showToast('Selecione um objeto para usar o Mirror Tool', 'warning');
+            return;
+        }
+        showModal('mirror-modal');
+    }
+
+    function executeMirrorTool() {
+        if (selectedIndices.length === 0) {
+            hideModal('mirror-modal');
+            return;
+        }
+
+        const axis = document.querySelector('input[name="mirror-axis"]:checked').value;
+        const removeOriginal = document.getElementById('mirror-remove-original').checked;
+
+        const toRemove = [];
+        selectedIndices.forEach(index => {
+            const originalObj = objectList[index];
+            if (!originalObj || !originalObj.mesh) return;
+
+            // Criar objeto espelhado
+            const newObj = originalObj.mesh.clone(originalObj.name + "_mirror");
+            
+            // Aplicar espelhamento baseado no eixo
+            switch(axis) {
+                case 'x':
+                    newObj.position.x = -originalObj.mesh.position.x;
+                    newObj.position.y = originalObj.mesh.position.y;
+                    newObj.position.z = originalObj.mesh.position.z;
+                    newObj.scaling.x = -newObj.scaling.x;
+                    break;
+                case 'y':
+                    newObj.position.x = originalObj.mesh.position.x;
+                    newObj.position.y = -originalObj.mesh.position.y;
+                    newObj.position.z = originalObj.mesh.position.z;
+                    newObj.scaling.y = -newObj.scaling.y;
+                    break;
+                case 'z':
+                    newObj.position.x = originalObj.mesh.position.x;
+                    newObj.position.y = originalObj.mesh.position.y;
+                    newObj.position.z = -originalObj.mesh.position.z;
+                    newObj.scaling.z = -newObj.scaling.z;
+                    break;
+            }
+
+            objectList.push({
+                name: newObj.name,
+                mesh: newObj,
+                type: originalObj.type,
+                selected: false,
+                visible: true,
+                locked: false,
+                layer: originalObj.layer,
+                props: { ...originalObj.props }
+            });
+
+            if (removeOriginal) {
+                toRemove.push(index);
+            }
+        });
+
+        // Remover originais se solicitado
+        if (removeOriginal) {
+            toRemove.sort((a, b) => b - a); // Ordem decrescente
+            toRemove.forEach(index => {
+                const obj = objectList[index];
+                if (obj && obj.mesh) {
+                    obj.mesh.dispose();
+                    objectList.splice(index, 1);
+                }
+            });
+            
+            selectedIndices = [];
+            selectedIdx = null;
+            if (gizmoManager) {
+                gizmoManager.attachToMesh(null);
+            }
+        }
+
+        updateObjectList();
+        updateBottomBar();
+        hideModal('mirror-modal');
+        showToast(`Objeto(s) espelhado(s) no eixo ${axis.toUpperCase()}!`, 'success');
+    }
+
+    // CSG Operations Functions
+    function performCSGUnion() {
+        if (selectedIndices.length < 2) {
+            showToast('Selecione pelo menos 2 objetos para operação CSG', 'warning');
+            return;
+        }
+
+        const meshes = selectedIndices.map(i => objectList[i].mesh).filter(m => m && m.geometry);
+        if (meshes.length < 2) {
+            showToast('Objetos selecionados não são válidos para CSG', 'error');
+            return;
+        }
+
+        try {
+            let result = meshes[0];
+            for (let i = 1; i < meshes.length; i++) {
+                const csg1 = BABYLON.CSG.FromMesh(result);
+                const csg2 = BABYLON.CSG.FromMesh(meshes[i]);
+                const unionCSG = csg1.union(csg2);
+                result = unionCSG.toMesh(result.name + "_union", result.material, scene);
+                
+                // Limpar mesh anterior se não for a primeira
+                if (i > 1) {
+                    const prevMesh = result;
+                    result = unionCSG.toMesh(result.name + "_union", result.material, scene);
+                    prevMesh.dispose();
+                }
+            }
+
+            // Adicionar resultado à lista
+            objectList.push({
+                name: result.name,
+                mesh: result,
+                type: 'CSG Union',
+                selected: false,
+                visible: true,
+                locked: false,
+                layer: 'geometry',
+                props: { movel: false, perigo: false, plataforma: false, decorativo: true }
+            });
+
+            // Remover objetos originais
+            deleteSelectedObjects();
+            showToast('União CSG realizada!', 'success');
+        } catch (error) {
+            showToast('Erro na operação CSG: ' + error.message, 'error');
+        }
+    }
+
+    function performCSGSubtract() {
+        if (selectedIndices.length !== 2) {
+            showToast('Selecione exatamente 2 objetos para subtração CSG', 'warning');
+            return;
+        }
+
+        const mesh1 = objectList[selectedIndices[0]].mesh;
+        const mesh2 = objectList[selectedIndices[1]].mesh;
+
+        if (!mesh1 || !mesh2 || !mesh1.geometry || !mesh2.geometry) {
+            showToast('Objetos selecionados não são válidos para CSG', 'error');
+            return;
+        }
+
+        try {
+            const csg1 = BABYLON.CSG.FromMesh(mesh1);
+            const csg2 = BABYLON.CSG.FromMesh(mesh2);
+            const subtractCSG = csg1.subtract(csg2);
+            const result = subtractCSG.toMesh(mesh1.name + "_subtract", mesh1.material, scene);
+
+            objectList.push({
+                name: result.name,
+                mesh: result,
+                type: 'CSG Subtract',
+                selected: false,
+                visible: true,
+                locked: false,
+                layer: 'geometry',
+                props: { movel: false, perigo: false, plataforma: false, decorativo: true }
+            });
+
+            deleteSelectedObjects();
+            showToast('Subtração CSG realizada!', 'success');
+        } catch (error) {
+            showToast('Erro na operação CSG: ' + error.message, 'error');
+        }
+    }
+
+    function performCSGIntersect() {
+        if (selectedIndices.length !== 2) {
+            showToast('Selecione exatamente 2 objetos para interseção CSG', 'warning');
+            return;
+        }
+
+        const mesh1 = objectList[selectedIndices[0]].mesh;
+        const mesh2 = objectList[selectedIndices[1]].mesh;
+
+        if (!mesh1 || !mesh2 || !mesh1.geometry || !mesh2.geometry) {
+            showToast('Objetos selecionados não são válidos para CSG', 'error');
+            return;
+        }
+
+        try {
+            const csg1 = BABYLON.CSG.FromMesh(mesh1);
+            const csg2 = BABYLON.CSG.FromMesh(mesh2);
+            const intersectCSG = csg1.intersect(csg2);
+            const result = intersectCSG.toMesh(mesh1.name + "_intersect", mesh1.material, scene);
+
+            objectList.push({
+                name: result.name,
+                mesh: result,
+                type: 'CSG Intersect',
+                selected: false,
+                visible: true,
+                locked: false,
+                layer: 'geometry',
+                props: { movel: false, perigo: false, plataforma: false, decorativo: true }
+            });
+
+            deleteSelectedObjects();
+            showToast('Interseção CSG realizada!', 'success');
+        } catch (error) {
+            showToast('Erro na operação CSG: ' + error.message, 'error');
+        }
+    }
+
+    // Modal Functions
+    function showModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+    }
+
+    function hideModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // Event Listeners para Criação Avançada
+    document.addEventListener('click', function(e) {
+        // Array Tool
+        if (e.target.id === 'array-tool') {
+            showArrayTool();
+        }
+        
+        // Mirror Tool
+        if (e.target.id === 'mirror-tool') {
+            showMirrorTool();
+        }
+        
+        // CSG Operations
+        if (e.target.id === 'csg-union') {
+            performCSGUnion();
+        }
+        
+        if (e.target.id === 'csg-subtract') {
+            performCSGSubtract();
+        }
+        
+        if (e.target.id === 'csg-intersect') {
+            performCSGIntersect();
+        }
+    });
+
+    // Expor funções globalmente para uso inline nos modais
+    window.executeArrayTool = executeArrayTool;
+    window.executeMirrorTool = executeMirrorTool;
+    window.showModal = showModal;
+    window.hideModal = hideModal;
     
     console.log('Editor 3D inicializado com sucesso');
 });
