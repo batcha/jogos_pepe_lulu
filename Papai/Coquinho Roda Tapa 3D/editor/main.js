@@ -27,6 +27,268 @@ window.addEventListener('DOMContentLoaded', function () {
         if (objsEl) objsEl.textContent = objectList.length;
         if (modeEl) modeEl.textContent = gizmoMode === 'move' ? 'Move' : 
                                       gizmoMode === 'rotate' ? 'Rotate' : 'Scale';
+        
+        // Mostrar propriedades do objeto selecionado
+        updateObjectProperties();
+    }
+    
+    // Função para atualizar propriedades do objeto selecionado
+    function updateObjectProperties() {
+        const propertiesPanel = document.getElementById('object-properties-panel');
+        if (!propertiesPanel) return;
+        
+        if (selectedIndices.length === 1) {
+            const obj = objectList[selectedIndices[0]];
+            if (obj) {
+                // Obter transformações atuais do mesh
+                const mesh = obj.mesh;
+                const pos = mesh.position;
+                const rot = mesh.rotation;
+                const scale = mesh.scaling;
+                
+                // Verificar se é primitivo para mostrar seleção de cor
+                const isPrimitive = ['cube', 'sphere', 'plane'].includes(obj.type);
+                
+                let colorSection = '';
+                if (isPrimitive) {
+                    const currentColor = mesh.material && mesh.material.diffuseColor ? 
+                        `#${Math.round(mesh.material.diffuseColor.r * 255).toString(16).padStart(2, '0')}${Math.round(mesh.material.diffuseColor.g * 255).toString(16).padStart(2, '0')}${Math.round(mesh.material.diffuseColor.b * 255).toString(16).padStart(2, '0')}` : '#ffffff';
+                    
+                    colorSection = `
+                        <div style="margin-bottom:6px;">
+                            <label style="color:#E91E63;display:block;font-size:0.9em;">Cor:</label>
+                            <input type="color" value="${currentColor}" 
+                                   onchange="updateObjectColor(${selectedIndices[0]}, this.value)"
+                                   style="width:60px;height:30px;border:1px solid #555;background:#333;cursor:pointer;">
+                        </div>
+                    `;
+                }
+                
+                propertiesPanel.innerHTML = `
+                    <div style="padding:8px;color:white;height:100%;overflow-y:auto;">
+                        <h4 style="margin:0 0 10px 0;color:#4CAF50;font-size:0.95rem;">🎯 Propriedades do Objeto</h4>
+                        
+                        <!-- Nome -->
+                        <div style="margin-bottom:8px;">
+                            <label style="color:#fff;display:block;font-size:0.85em;margin-bottom:2px;">Nome:</label>
+                            <input type="text" value="${obj.name}" onchange="renameObject(${selectedIndices[0]}, this.value)" 
+                                   style="width:100%;padding:4px;background:#333;color:white;border:1px solid #555;border-radius:3px;font-size:0.8em;">
+                        </div>
+                        
+                        <!-- Tipo e Layer em linha -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                            <div>
+                                <label style="color:#64B5F6;display:block;font-size:0.85em;margin-bottom:2px;">Tipo:</label>
+                                <span style="color:#64B5F6;font-size:0.8em;background:#333;padding:4px 8px;border-radius:3px;display:block;text-align:center;">${obj.type}</span>
+                            </div>
+                            <div>
+                                <label style="color:#fff;display:block;font-size:0.85em;margin-bottom:2px;">Layer:</label>
+                                <select onchange="setObjectLayer(${selectedIndices[0]}, this.value)" 
+                                        style="width:100%;padding:4px;background:#333;color:white;border:1px solid #555;border-radius:3px;font-size:0.8em;">
+                                    <option value="geometry" ${obj.layer === 'geometry' ? 'selected' : ''}>Geometry</option>
+                                    <option value="imported" ${obj.layer === 'imported' ? 'selected' : ''}>Imported</option>
+                                    <option value="special" ${obj.layer === 'special' ? 'selected' : ''}>Special</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        ${colorSection}
+                        
+                        <!-- Transform em grid compacto -->
+                        <div style="margin-bottom:8px;">
+                            <h5 style="margin:5px 0;color:#FF9800;font-size:0.9em;">🎛️ Transform:</h5>
+                            
+                            <!-- Posição -->
+                            <div style="margin-bottom:4px;">
+                                <label style="color:#4CAF50;display:block;font-size:0.8em;margin-bottom:1px;">Posição (X, Y, Z):</label>
+                                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;">
+                                    <input type="number" step="0.1" value="${pos.x.toFixed(2)}" 
+                                           onchange="updateObjectTransform(${selectedIndices[0]}, 'position', 'x', parseFloat(this.value))"
+                                           style="padding:3px;background:#333;color:white;border:1px solid #555;text-align:center;font-size:0.75em;border-radius:2px;">
+                                    <input type="number" step="0.1" value="${pos.y.toFixed(2)}" 
+                                           onchange="updateObjectTransform(${selectedIndices[0]}, 'position', 'y', parseFloat(this.value))"
+                                           style="padding:3px;background:#333;color:white;border:1px solid #555;text-align:center;font-size:0.75em;border-radius:2px;">
+                                    <input type="number" step="0.1" value="${pos.z.toFixed(2)}" 
+                                           onchange="updateObjectTransform(${selectedIndices[0]}, 'position', 'z', parseFloat(this.value))"
+                                           style="padding:3px;background:#333;color:white;border:1px solid #555;text-align:center;font-size:0.75em;border-radius:2px;">
+                                </div>
+                            </div>
+                            
+                            <!-- Rotação -->
+                            <div style="margin-bottom:4px;">
+                                <label style="color:#2196F3;display:block;font-size:0.8em;margin-bottom:1px;">Rotação (X, Y, Z) graus:</label>
+                                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;">
+                                    <input type="number" step="1" value="${(rot.x * 180 / Math.PI).toFixed(1)}" 
+                                           onchange="updateObjectTransform(${selectedIndices[0]}, 'rotation', 'x', this.value * Math.PI / 180)"
+                                           style="padding:3px;background:#333;color:white;border:1px solid #555;text-align:center;font-size:0.75em;border-radius:2px;">
+                                    <input type="number" step="1" value="${(rot.y * 180 / Math.PI).toFixed(1)}" 
+                                           onchange="updateObjectTransform(${selectedIndices[0]}, 'rotation', 'y', this.value * Math.PI / 180)"
+                                           style="padding:3px;background:#333;color:white;border:1px solid #555;text-align:center;font-size:0.75em;border-radius:2px;">
+                                    <input type="number" step="1" value="${(rot.z * 180 / Math.PI).toFixed(1)}" 
+                                           onchange="updateObjectTransform(${selectedIndices[0]}, 'rotation', 'z', this.value * Math.PI / 180)"
+                                           style="padding:3px;background:#333;color:white;border:1px solid #555;text-align:center;font-size:0.75em;border-radius:2px;">
+                                </div>
+                            </div>
+                            
+                            <!-- Escala -->
+                            <div style="margin-bottom:4px;">
+                                <label style="color:#FF5722;display:block;font-size:0.8em;margin-bottom:1px;">Escala (X, Y, Z):</label>
+                                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;">
+                                    <input type="number" step="0.1" value="${scale.x.toFixed(2)}" 
+                                           onchange="updateObjectTransform(${selectedIndices[0]}, 'scaling', 'x', parseFloat(this.value))"
+                                           style="padding:3px;background:#333;color:white;border:1px solid #555;text-align:center;font-size:0.75em;border-radius:2px;">
+                                    <input type="number" step="0.1" value="${scale.y.toFixed(2)}" 
+                                           onchange="updateObjectTransform(${selectedIndices[0]}, 'scaling', 'y', parseFloat(this.value))"
+                                           style="padding:3px;background:#333;color:white;border:1px solid #555;text-align:center;font-size:0.75em;border-radius:2px;">
+                                    <input type="number" step="0.1" value="${scale.z.toFixed(2)}" 
+                                           onchange="updateObjectTransform(${selectedIndices[0]}, 'scaling', 'z', parseFloat(this.value))"
+                                           style="padding:3px;background:#333;color:white;border:1px solid #555;text-align:center;font-size:0.75em;border-radius:2px;">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Propriedades do Jogo -->
+                        <div style="margin-bottom:4px;">
+                            <h5 style="margin:5px 0;color:#FF9800;font-size:0.9em;">🎮 Propriedades do Jogo:</h5>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:0.8em;">
+                                <label><input type="checkbox" ${obj.props?.movel ? 'checked' : ''} onchange="updateObjectProp(${selectedIndices[0]}, 'movel', this.checked)"> Móvel</label>
+                                <label><input type="checkbox" ${obj.props?.perigo ? 'checked' : ''} onchange="updateObjectProp(${selectedIndices[0]}, 'perigo', this.checked)"> Perigo</label>
+                                <label><input type="checkbox" ${obj.props?.plataforma ? 'checked' : ''} onchange="updateObjectProp(${selectedIndices[0]}, 'plataforma', this.checked)"> Plataforma</label>
+                                <label><input type="checkbox" ${obj.props?.decorativo ? 'checked' : ''} onchange="updateObjectProp(${selectedIndices[0]}, 'decorativo', this.checked)"> Decorativo</label>
+                            </div>
+                        </div>
+                        
+                        ${obj.assetPath ? `<div style="margin-bottom:4px;font-size:0.8em;"><label>📁 Asset: <span style="color:#9C27B0;">${obj.assetPath}</span></label></div>` : ''}
+                    </div>
+                `;
+            }
+        } else if (selectedIndices.length > 1) {
+            propertiesPanel.innerHTML = `
+                <div style="padding:8px;color:white;text-align:center;">
+                    <h4 style="margin:0 0 8px 0;color:#4CAF50;font-size:0.95rem;">👥 Múltiplos Objetos (${selectedIndices.length})</h4>
+                    <p style="margin:5px 0;font-size:0.8rem;color:#ccc;">Edição em lote disponível</p>
+                    <div style="display:flex;gap:8px;justify-content:center;margin-top:10px;">
+                        <button onclick="resetSelectedTransforms()" style="padding:6px 12px;background:#FF5722;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;">🔄 Reset Transforms</button>
+                        <button onclick="deleteSelectedObjects()" style="padding:6px 12px;background:#e74c3c;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;">🗑️ Deletar Selecionados</button>
+                    </div>
+                </div>
+            `;
+        } else {
+            propertiesPanel.innerHTML = `
+                <div style="padding:8px;color:white;text-align:center;">
+                    <h4 style="margin:0;color:#666;font-size:0.95rem;">Nenhum objeto selecionado</h4>
+                    <p style="margin:5px 0;font-size:0.8rem;color:#888;">Clique em um objeto para editar propriedades</p>
+                </div>
+            `;
+        }
+    }
+    
+    // Função para renomear objeto
+    function renameObject(index, newName) {
+        if (objectList[index] && newName.trim()) {
+            objectList[index].name = newName.trim();
+            updateObjectList();
+            updateObjectProperties();
+        }
+    }
+    
+    // Função para atualizar propriedade do objeto
+    function updateObjectProp(index, prop, value) {
+        if (objectList[index]) {
+            if (!objectList[index].props) objectList[index].props = {};
+            objectList[index].props[prop] = value;
+            updateObjectList();
+        }
+    }
+    
+    // Função para atualizar transformações do objeto
+    function updateObjectTransform(index, transformType, axis, value) {
+        if (objectList[index] && objectList[index].mesh) {
+            const mesh = objectList[index].mesh;
+            
+            if (transformType === 'position') {
+                mesh.position[axis] = value;
+            } else if (transformType === 'rotation') {
+                mesh.rotation[axis] = value;
+            } else if (transformType === 'scaling') {
+                mesh.scaling[axis] = value;
+            }
+            
+            // Atualizar dados armazenados do objeto
+            objectList[index][transformType] = mesh[transformType].clone();
+            
+            // Refresh do gizmo se o objeto estiver selecionado
+            if (selectedIndices.includes(index)) {
+                updateGizmoSelection();
+            }
+        }
+    }
+    
+    // Função para resetar transformações de objetos selecionados
+    function resetSelectedTransforms() {
+        if (confirm('Resetar transformações dos objetos selecionados?')) {
+            selectedIndices.forEach(index => {
+                if (objectList[index] && objectList[index].mesh) {
+                    const mesh = objectList[index].mesh;
+                    mesh.position.set(0, 0, 0);
+                    mesh.rotation.set(0, 0, 0);
+                    mesh.scaling.set(1, 1, 1);
+                    
+                    // Atualizar dados armazenados
+                    objectList[index].position = mesh.position.clone();
+                    objectList[index].rotation = mesh.rotation.clone();
+                    objectList[index].scale = mesh.scaling.clone();
+                }
+            });
+            updateObjectProperties();
+            updateGizmoSelection();
+        }
+    }
+    
+    // Função para atualizar cor do objeto (apenas primitivos)
+    function updateObjectColor(index, colorHex) {
+        if (objectList[index] && objectList[index].mesh) {
+            const mesh = objectList[index].mesh;
+            
+            // Converter hex para RGB
+            const r = parseInt(colorHex.slice(1, 3), 16) / 255;
+            const g = parseInt(colorHex.slice(3, 5), 16) / 255;
+            const b = parseInt(colorHex.slice(5, 7), 16) / 255;
+            
+            // Criar material se não existir
+            if (!mesh.material) {
+                mesh.material = new BABYLON.StandardMaterial(`material_${mesh.name}`, scene);
+            }
+            
+            // Atualizar cor
+            mesh.material.diffuseColor = new BABYLON.Color3(r, g, b);
+        }
+    }
+    
+    // Função para deletar objetos selecionados
+    function deleteSelectedObjects() {
+        if (selectedIndices.length === 0) return;
+        
+        if (confirm(`Deletar ${selectedIndices.length} objeto(s) selecionado(s)?`)) {
+            // Ordenar índices de forma decrescente para deletar corretamente
+            const sortedIndices = [...selectedIndices].sort((a, b) => b - a);
+            
+            sortedIndices.forEach(index => {
+                if (objectList[index]) {
+                    // Remover mesh da cena
+                    if (objectList[index].mesh) {
+                        objectList[index].mesh.dispose();
+                    }
+                    // Remover da lista
+                    objectList.splice(index, 1);
+                }
+            });
+            
+            // Limpar seleção
+            clearSelection();
+            updateObjectList();
+            updateBottomBar();
+        }
     }
 
     // Atualiza bottom bar ao iniciar (após variáveis e DOM)
@@ -249,6 +511,9 @@ window.addEventListener('DOMContentLoaded', function () {
                 const obj = objectList[selectedIndices[0]];
                 if (obj && obj.mesh && !obj.locked) {
                     gizmoManager.attachToMesh(obj.mesh);
+                    
+                    // Garantir que os observadores estão configurados
+                    setupGizmoObservers();
                 } else {
                     gizmoManager.attachToMesh(null);
                 }
@@ -269,6 +534,39 @@ window.addEventListener('DOMContentLoaded', function () {
                 }
             }
         });
+    }
+    
+    // Função para configurar observadores do gizmo (chamada sob demanda)
+    function setupGizmoObservers() {
+        // Só configurar se ainda não foi configurado
+        if (gizmoManager._observersSetup) return;
+        
+        try {
+            if (gizmoManager.gizmos.positionGizmo && !gizmoManager.gizmos.positionGizmo._observerSetup) {
+                gizmoManager.gizmos.positionGizmo.onDragEndObservable.add(() => {
+                    updateObjectProperties();
+                });
+                gizmoManager.gizmos.positionGizmo._observerSetup = true;
+            }
+            
+            if (gizmoManager.gizmos.rotationGizmo && !gizmoManager.gizmos.rotationGizmo._observerSetup) {
+                gizmoManager.gizmos.rotationGizmo.onDragEndObservable.add(() => {
+                    updateObjectProperties();
+                });
+                gizmoManager.gizmos.rotationGizmo._observerSetup = true;
+            }
+            
+            if (gizmoManager.gizmos.scaleGizmo && !gizmoManager.gizmos.scaleGizmo._observerSetup) {
+                gizmoManager.gizmos.scaleGizmo.onDragEndObservable.add(() => {
+                    updateObjectProperties();
+                });
+                gizmoManager.gizmos.scaleGizmo._observerSetup = true;
+            }
+            
+            gizmoManager._observersSetup = true;
+        } catch (error) {
+            console.warn('Erro ao configurar observadores do gizmo:', error);
+        }
     }
 
     // Clique na cena para desselecionar
@@ -556,10 +854,29 @@ window.addEventListener('DOMContentLoaded', function () {
                 div.style.cssText = 'padding:4px;margin:2px 0;background:#2a2a3a;border-radius:4px;cursor:pointer;display:flex;justify-content:space-between;';
                 div.innerHTML = `
                     <span onclick="loadSelectionSet('${name}')">${name} (${selectionSets[name].length})</span>
-                    <button onclick="delete selectionSets['${name}']; updateSelectionSetsUI();" style="background:none;border:none;color:#ff6b6b;">✖</button>
+                    <button onclick="deleteSelectionSet('${name}')" style="background:none;border:none;color:#ff6b6b;">✖</button>
+                    <button onclick="renameSelectionSet('${name}')" style="background:none;border:none;color:#4CAF50;margin-left:5px;">✎</button>
                 `;
                 container.appendChild(div);
             });
+        }
+    }
+    
+    // Função para deletar selection set
+    function deleteSelectionSet(name) {
+        if (confirm(`Excluir set '${name}'?`)) {
+            delete selectionSets[name];
+            updateSelectionSetsUI();
+        }
+    }
+    
+    // Função para renomear selection set
+    function renameSelectionSet(oldName) {
+        const newName = prompt(`Novo nome para '${oldName}':`, oldName);
+        if (newName && newName.trim() && newName !== oldName) {
+            selectionSets[newName.trim()] = selectionSets[oldName];
+            delete selectionSets[oldName];
+            updateSelectionSetsUI();
         }
     }
 
@@ -1014,6 +1331,18 @@ window.addEventListener('DOMContentLoaded', function () {
             
             // Expor função globalmente
             window.loadGLBAsset = loadGLBAsset;
+            
+            // Expor outras funções globalmente para uso no HTML
+            window.deleteSelectionSet = deleteSelectionSet;
+            window.renameSelectionSet = renameSelectionSet;
+            window.loadSelectionSet = loadSelectionSet;
+            window.renameObject = renameObject;
+            window.updateObjectProp = updateObjectProp;
+            window.setObjectLayer = setObjectLayer;
+            window.updateObjectTransform = updateObjectTransform;
+            window.resetSelectedTransforms = resetSelectedTransforms;
+            window.updateObjectColor = updateObjectColor;
+            window.deleteSelectedObjects = deleteSelectedObjects;
             
             console.log(`✅ Assets browser renderizado com ${assets.length} modelos em ${Object.keys(categories).length} categorias`);
         });
